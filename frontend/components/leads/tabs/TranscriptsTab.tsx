@@ -198,12 +198,14 @@ export function TranscriptsTab({
                 Format: DD/MM/YYYY, HH:mm. Kosongkan untuk memakai waktu saat disimpan.
               </p>
             </div>
-            {['video', 'audio', 'transcript'].includes(transcriptForm.source_type) && (
+            {['video', 'audio', 'transcript', 'whatsapp'].includes(transcriptForm.source_type) && (
               <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">File</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  {transcriptForm.source_type === 'whatsapp' ? 'File Export WhatsApp (.txt opsional)' : 'File'}
+                </label>
                 <Input
                   type="file"
-                  accept=".txt,.vtt,.srt,audio/*,video/*"
+                  accept={transcriptForm.source_type === 'whatsapp' ? '.txt' : '.txt,.vtt,.srt,audio/*,video/*'}
                   onChange={(e) => {
                     const file = e.target.files?.[0] ?? null;
                     setTranscriptForm((f: any) => ({
@@ -213,7 +215,7 @@ export function TranscriptsTab({
                         ? 'audio'
                         : file?.type.startsWith('video/')
                           ? 'video'
-                          : file
+                          : file && f.source_type !== 'whatsapp'
                             ? 'transcript'
                             : f.source_type,
                     }));
@@ -234,16 +236,30 @@ export function TranscriptsTab({
               </div>
             )}
           </div>
-          {transcriptForm.source_type === 'manual' && (
+
+          {['audio', 'video'].includes(transcriptForm.source_type) && (
+            <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-400">
+              <p className="font-semibold">Informasi Arsip Rekaman Audio/Video</p>
+              <p className="mt-0.5 text-muted-foreground">
+                File audio/video yang diunggah disimpan sebagai arsip rekaman meeting. Untuk analisa otomatis AI saat ini, Anda dapat menggunakan transkrip teks (.txt/.vtt/.srt) atau menautkan link Lark Minutes.
+              </p>
+            </div>
+          )}
+
+          {['manual', 'whatsapp'].includes(transcriptForm.source_type) && (
             <div>
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Transcript Text / Notes
+                {transcriptForm.source_type === 'whatsapp' ? 'Chat WhatsApp / Percakapan' : 'Transcript Text / Notes'}
               </label>
               <textarea
                 value={transcriptForm.transcript_text}
                 onChange={(e) => setTranscriptForm((f: any) => ({ ...f, transcript_text: e.target.value }))}
                 rows={8}
-                placeholder="Paste your meeting notes, call transcript, or conversation here..."
+                placeholder={
+                  transcriptForm.source_type === 'whatsapp'
+                    ? 'Paste riwayat percakapan WhatsApp atau catatan pesan di sini...'
+                    : 'Paste your meeting notes, call transcript, or conversation here...'
+                }
                 className="min-h-[160px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
               />
             </div>
@@ -264,7 +280,13 @@ export function TranscriptsTab({
             <Button
               onClick={() => {
                 if (transcriptForm.source_type === 'link') {
-                  fetchTranscriptLinkMutation.mutate(transcriptForm.meeting_link);
+                  fetchTranscriptLinkMutation.mutate({
+                    meeting_link: transcriptForm.meeting_link,
+                    title: transcriptForm.title,
+                    meeting_type: transcriptForm.meeting_type,
+                    activity_id: transcriptForm.activity_id,
+                    recorded_at: transcriptForm.recorded_at,
+                  });
                 } else {
                   storeTranscriptMutation.mutate(transcriptForm);
                 }
@@ -272,10 +294,11 @@ export function TranscriptsTab({
               disabled={
                 storeTranscriptMutation.isPending ||
                 fetchTranscriptLinkMutation.isPending ||
-                (transcriptForm.source_type === 'manual' && !transcriptForm.transcript_text.trim()) ||
+                (transcriptForm.source_type === 'manual' && !transcriptForm.transcript_text?.trim()) ||
+                (transcriptForm.source_type === 'whatsapp' && !transcriptForm.transcript_text?.trim() && !transcriptForm.transcript_file) ||
                 (['video', 'audio', 'transcript'].includes(transcriptForm.source_type) &&
                   !transcriptForm.transcript_file) ||
-                (transcriptForm.source_type === 'link' && !transcriptForm.meeting_link.trim())
+                (transcriptForm.source_type === 'link' && !transcriptForm.meeting_link?.trim())
               }
             >
               {(storeTranscriptMutation.isPending || fetchTranscriptLinkMutation.isPending) && (

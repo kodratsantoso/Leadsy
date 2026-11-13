@@ -136,6 +136,10 @@ class LeadTranscriptController extends Controller
     {
         $data = $request->validate([
             'meeting_link' => 'required|url',
+            'title' => 'nullable|string|max:255',
+            'meeting_type' => 'nullable|string|max:100',
+            'activity_id' => 'nullable|integer',
+            'recorded_at' => 'nullable|date',
         ]);
 
         $url = $data['meeting_link'];
@@ -155,9 +159,12 @@ class LeadTranscriptController extends Controller
             abort(400, 'Invalid Lark Meeting URL.');
         }
 
+        $meetingId = $parsed['type'] === 'meetingId' ? $parsed['id'] : null;
+        $minuteToken = $parsed['type'] === 'minuteToken' ? $parsed['id'] : null;
+
         // Application-level duplicate check for meetingId or minuteToken
-        if ($parsed['type'] === 'meetingId') {
-            $existing = \App\Models\LeadTranscript::where('meeting_id', $parsed['id'])
+        if ($meetingId) {
+            $existing = \App\Models\LeadTranscript::where('meeting_id', $meetingId)
                 ->whereHas('lead', function($q) use ($lead) {
                     $q->where('tenant_id', $lead->tenant_id);
                 })->first();
@@ -170,8 +177,8 @@ class LeadTranscriptController extends Controller
                     'lead_id' => $existing->lead_id
                 ], 409);
             }
-        } elseif ($parsed['type'] === 'minuteToken') {
-            $existing = \App\Models\LeadTranscript::where('minute_token', $parsed['id'])
+        } elseif ($minuteToken) {
+            $existing = \App\Models\LeadTranscript::where('minute_token', $minuteToken)
                 ->whereHas('lead', function($q) use ($lead) {
                     $q->where('tenant_id', $lead->tenant_id);
                 })->first();
@@ -186,14 +193,18 @@ class LeadTranscriptController extends Controller
             }
         }
 
-        // Create pending transcript
+        // Create pending transcript with metadata and identifiers preserved upfront
         $transcript = $lead->transcripts()->create([
-            'title' => 'Lark Meeting Transcript',
+            'title' => !empty($data['title']) ? $data['title'] : 'Lark Meeting Transcript',
+            'meeting_type' => !empty($data['meeting_type']) ? $data['meeting_type'] : 'General',
+            'activity_id' => !empty($data['activity_id']) ? $data['activity_id'] : null,
+            'meeting_id' => $meetingId,
+            'minute_token' => $minuteToken,
             'source_type' => 'link',
             'source_provider' => 'LARK',
             'source_url' => $url,
             'transcript_text' => '',
-            'recorded_at' => now(),
+            'recorded_at' => !empty($data['recorded_at']) ? Carbon::parse($data['recorded_at']) : now(),
             'evaluation_status' => 'pending',
             'import_status' => 'VALIDATING_LINK'
         ]);
@@ -201,6 +212,7 @@ class LeadTranscriptController extends Controller
         \App\Services\AuditService::log('create_transcript', 'lead_transcripts', $transcript, null, [
             'source_type' => 'link',
             'fetch_source' => 'lark_link',
+            'meeting_type' => $transcript->meeting_type,
         ]);
 
         // Dispatch background job
@@ -239,7 +251,13 @@ class LeadTranscriptController extends Controller
 
         $transcript->update(['evaluation_status' => 'pending']);
         
-        \App\Jobs\AnalyzeTranscriptJob::dispatch($transcript->id);
+        \Illuminate\Support\Facades\Bus::chain([
+            new \App\Jobs\AnalyzeTranscriptJob($transcript->id),
+            new \App\Jobs\SaveTranscriptAnalysisJob($transcript->id),
+            new \App\Jobs\SyncTranscriptAnalysisToLarkBaseJob($transcript->id),
+            new \App\Jobs\GenerateMeetingSummaryPdfJob($transcript->id),
+            new \App\Jobs\SyncMeetingSummaryPdfToLarkBaseJob($transcript->id),
+        ])->dispatch();
 
         return response()->json(['message' => 'Evaluation queued', 'data' => []], 202);
     }

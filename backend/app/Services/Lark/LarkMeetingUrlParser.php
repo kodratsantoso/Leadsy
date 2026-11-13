@@ -62,10 +62,10 @@ class LarkMeetingUrlParser
             }
         }
 
-        // 1. Check for Minute Token in Path (e.g., https://vc.larksuite.com/minutes/obcnxxxxxxxxxxxx)
-        if (isset($parsed['path']) && preg_match('/\/minutes\/([a-zA-Z0-9]+)/i', $parsed['path'], $matches)) {
+        // 1. Check for Minute Token in Path (e.g., https://vc.larksuite.com/minutes/obcnxxxxxxxxxxxx or https://company.larksuite.com/minutes/detail/obcnxxxxxxxxxxxx)
+        if (isset($parsed['path']) && preg_match('/\/minutes\/(?:detail\/|share\/|me\/)?([a-zA-Z0-9]+)/i', $parsed['path'], $matches)) {
             $token = $matches[1];
-            if ($token && strtolower($token) !== 'detail') {
+            if ($token && !in_array(strtolower($token), ['detail', 'share', 'me', 'home', 'recent'], true)) {
                 return [
                     'type' => 'minuteToken',
                     'id' => $token,

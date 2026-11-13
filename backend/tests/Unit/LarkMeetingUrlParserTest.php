@@ -17,6 +17,26 @@ class LarkMeetingUrlParserTest extends TestCase
         $this->assertEquals('obcn7m0x5544sxxxxxxxx', $result['id']);
     }
 
+    public function test_it_parses_minute_detail_path()
+    {
+        $url = 'https://company.larksuite.com/minutes/detail/obcn7m0x5544sxxxxxxxx';
+        $result = LarkMeetingUrlParser::parse($url);
+
+        $this->assertTrue($result['valid']);
+        $this->assertEquals('minuteToken', $result['type']);
+        $this->assertEquals('obcn7m0x5544sxxxxxxxx', $result['id']);
+    }
+
+    public function test_it_parses_feishu_minute_detail_path()
+    {
+        $url = 'https://prasetia.feishu.cn/minutes/detail/obcn7m0x5544sxxxxxxxx?from=minutes';
+        $result = LarkMeetingUrlParser::parse($url);
+
+        $this->assertTrue($result['valid']);
+        $this->assertEquals('minuteToken', $result['type']);
+        $this->assertEquals('obcn7m0x5544sxxxxxxxx', $result['id']);
+    }
+
     public function test_it_parses_meeting_id()
     {
         $url = 'https://applink.larksuite.com/client/vc/meeting_detail?meetingId=743385739847293&title=Weekly+Sync';

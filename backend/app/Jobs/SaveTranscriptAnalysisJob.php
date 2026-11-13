@@ -52,7 +52,10 @@ class SaveTranscriptAnalysisJob implements ShouldQueue
         $log = DB::table('lead_analysis_logs')
             ->where('lead_id', $transcript->lead_id)
             ->where('analysis_type', 'transcript_evaluation_raw')
-            ->whereRaw("json_extract(result_json, '$.transcript_id') = ?", [$this->transcriptId])
+            ->where(function ($q) {
+                $q->where('result_json->transcript_id', $this->transcriptId)
+                  ->orWhere('result_json->transcript_id', (string) $this->transcriptId);
+            })
             ->orderByDesc('created_at')
             ->first();
 

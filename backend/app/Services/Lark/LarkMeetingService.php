@@ -229,6 +229,17 @@ class LarkMeetingService extends LarkService
                 'file_format' => 'txt',
             ]);
 
+            // Check if Lark returned an error JSON instead of raw text
+            $trimmed = trim((string) $response);
+            if (str_starts_with($trimmed, '{') && str_ends_with($trimmed, '}')) {
+                $decoded = json_decode($trimmed, true);
+                if (is_array($decoded) && isset($decoded['code']) && $decoded['code'] !== 0) {
+                    $code = (int) $decoded['code'];
+                    $msg = $decoded['msg'] ?? 'Unknown Lark Minutes error';
+                    throw new Exception("Lark Minutes export error ({$code}): {$msg}", $code);
+                }
+            }
+
             return $response;
         } catch (Exception $e) {
             Log::error('Failed to export Lark minute transcript', [

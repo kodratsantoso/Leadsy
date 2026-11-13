@@ -1327,8 +1327,8 @@ export default function LeadDetailPage() {
       setTranscriptForm({ title: '', source_type: 'manual', activity_id: '', recorded_at: '', transcript_text: '', transcript_file: null, meeting_link: '', analyze_after_save: true, meeting_type: 'General' });
       setTranscriptFeedback({ type: 'success', msg: 'Transcript saved successfully.' });
       if (transcriptForm.analyze_after_save && payload?.data?.id && payload?.data?.transcript_text?.trim()) {
+        // Backend storeTranscript automatically queued the AI analysis pipeline; avoid duplicate dispatch
         setEvaluatingTranscriptId(payload.data.id);
-        evaluateTranscriptMutation.mutate(payload.data.id);
       }
       setTimeout(() => setTranscriptFeedback(null), 4000);
     },
@@ -1372,16 +1372,28 @@ export default function LeadDetailPage() {
   });
 
   const fetchTranscriptLinkMutation = useMutation({
-    mutationFn: async (url?: string) => {
-      const link = url || leadData.meeting_link;
+    mutationFn: async (payload?: string | { meeting_link: string; title?: string; meeting_type?: string; activity_id?: string | number | null; recorded_at?: string | null }) => {
+      const link = typeof payload === 'string' ? payload : (payload?.meeting_link || leadData.meeting_link);
       if (!link) throw new Error("No meeting link provided.");
+      const body = typeof payload === 'object' && payload !== null
+        ? {
+            meeting_link: link,
+            title: payload.title || undefined,
+            meeting_type: payload.meeting_type || undefined,
+            activity_id: payload.activity_id || undefined,
+            recorded_at: (() => {
+              const rec = toApiDateTime(payload.recorded_at);
+              return rec || undefined;
+            })(),
+          }
+        : { meeting_link: link };
       const r = await apiFetch(`/leads/${leadId}/transcripts/fetch-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ meeting_link: link })
+        body: JSON.stringify(body)
       });
       if (!r.ok) {
-        const error = await r.json();
+        const error = await r.json().catch(() => ({}));
         throw new Error(error.message || 'Failed to fetch transcript from link');
       }
       return r.json();
@@ -1390,6 +1402,7 @@ export default function LeadDetailPage() {
       refetchTranscripts();
       refetchEvaluations();
       setShowTranscriptForm(false);
+      setTranscriptForm({ title: '', source_type: 'manual', activity_id: '', recorded_at: '', transcript_text: '', transcript_file: null, meeting_link: '', analyze_after_save: true, meeting_type: 'General' });
       setTranscriptFeedback({ type: 'success', msg: 'Transcript import started from link successfully.' });
     },
     onError: (err: any) => {
