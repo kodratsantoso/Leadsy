@@ -26,7 +26,7 @@ export function ThemeToggle() {
   const ActiveIcon = resolved === "dark" ? Moon : Sun;
 
   return (
-    <div className="relative" ref={ref}>
+    <div className={`relative ${open ? "z-50" : ""}`} ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Toggle theme"

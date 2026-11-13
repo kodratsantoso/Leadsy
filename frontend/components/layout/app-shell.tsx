@@ -599,7 +599,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Main Column */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 pt-safe backdrop-blur-md sm:h-14 sm:px-6 sm:py-0">
+        <header className="relative z-30 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 pt-safe backdrop-blur-md sm:h-14 sm:px-6 sm:py-0">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Button
               type="button"
@@ -683,7 +683,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <ThemeToggle />
 
             {/* User dropdown */}
-            <div className="relative" ref={menuRef}>
+            <div className={`relative ${userMenuOpen ? "z-50" : ""}`} ref={menuRef}>
               <button
                 type="button"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}

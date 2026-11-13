@@ -344,7 +344,7 @@ function WorkflowBuilder({ id }: { id: string }) {
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background">
       {/* Header */}
-      <header className="h-14 border-b bg-card px-4 flex items-center justify-between shrink-0">
+      <header className="relative z-20 h-14 border-b bg-card px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="icon" onClick={() => router.push('/settings/workflows')}>
             <ArrowLeft className="w-4 h-4" />

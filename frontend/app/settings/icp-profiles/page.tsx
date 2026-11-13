@@ -338,7 +338,7 @@ export default function IcpProfilesPage() {
               </button>
             </div>
             {showModeMenu && (
-              <div className="absolute right-0 top-full z-20 mt-1 w-52 rounded-xl border border-border bg-card p-1 shadow-xl">
+              <div className="absolute right-0 top-full z-30 mt-1 w-52 rounded-xl border border-border bg-card p-1 shadow-xl">
                 <button
                   onClick={() => { setGenerateMode("combined"); setShowModeMenu(false); }}
                   className={`flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50 ${generateMode === "combined" ? "text-[var(--brand)]" : ""}`}
