@@ -2,10 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\PersonalAccessToken;
 use App\Models\SecuritySetting;
 use Closure;
 use Illuminate\Http\Request;
-use Laravel\Sanctum\PersonalAccessToken;
+use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -39,7 +40,7 @@ class EnforceSessionTimeout
         }
 
         // Touch last_active_at and refresh client telemetry periodically (at most once every 2 mins to avoid DB churn)
-        $lastTouch = $accessToken->last_active_at;
+        $lastTouch = $accessToken->last_active_at ? Carbon::parse($accessToken->last_active_at) : null;
         if (! $lastTouch || $lastTouch->diffInMinutes(now()) >= 2 || ! $accessToken->ip_address) {
             $telemetry = app(\App\Services\Security\ClientTelemetryService::class)->captureFromRequest($request);
             $accessToken->forceFill([
@@ -62,7 +63,8 @@ class EnforceSessionTimeout
             return $next($request);
         }
 
-        $lastActivity = $accessToken->last_used_at ?? $accessToken->created_at;
+        $rawLastActivity = $accessToken->last_used_at ?? $accessToken->created_at;
+        $lastActivity = $rawLastActivity ? Carbon::parse($rawLastActivity) : null;
         $cutoff = now()->subMinutes($setting->session_timeout_minutes);
 
         if ($lastActivity && $lastActivity->lt($cutoff)) {

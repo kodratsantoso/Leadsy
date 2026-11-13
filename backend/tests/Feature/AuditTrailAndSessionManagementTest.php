@@ -230,4 +230,29 @@ class AuditTrailAndSessionManagementTest extends TestCase
         $this->assertDatabaseMissing('personal_access_tokens', ['id' => $idleToken->accessToken->id]);
         $this->assertDatabaseHas('personal_access_tokens', ['id' => $activeToken->accessToken->id]);
     }
+
+    public function test_enforce_session_timeout_middleware_handles_string_and_carbon_dates_without_error(): void
+    {
+        $token = $this->adminUser->createToken('api');
+        
+        // Emulate database returning raw string or timestamp
+        \Illuminate\Support\Facades\DB::table('personal_access_tokens')
+            ->where('id', $token->accessToken->id)
+            ->update([
+                'last_active_at' => now()->subMinutes(5)->toDateTimeString(),
+                'ip_address' => '103.188.177.19',
+            ]);
+
+        // Make an authenticated request through the middleware stack with Bearer token
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token->plainTextToken)
+            ->getJson('/api/auth/me');
+
+        $response->assertOk();
+
+        // Make a second request immediately (simulating fast user navigation)
+        $secondResponse = $this->withHeader('Authorization', 'Bearer ' . $token->plainTextToken)
+            ->getJson('/api/auth/me');
+
+        $secondResponse->assertOk();
+    }
 }
