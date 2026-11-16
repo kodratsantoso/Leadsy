@@ -49,15 +49,78 @@ class MeetingSummaryPdfController extends Controller
      */
     public function download($transcriptId)
     {
+        $transcript = LeadTranscript::with(['lead', 'evaluations'])->findOrFail($transcriptId);
+
         $document = MeetingSummaryDocument::where('transcript_id', $transcriptId)
             ->where('generation_status', 'success')
             ->latest()
             ->first();
 
-        if (!$document || !Storage::disk('public')->exists($document->file_path)) {
-            return response()->json(['message' => 'PDF document not found or not ready.'], 404);
+        // 1. If physical file exists on disk, download directly
+        if ($document && !empty($document->file_path) && Storage::disk('public')->exists($document->file_path)) {
+            return Storage::disk('public')->download($document->file_path, $document->file_name);
         }
 
-        return Storage::disk('public')->download($document->file_path, $document->file_name);
+        // 2. Self-healing fallback: Generate PDF on the fly using DomPdf
+        $evaluation = $transcript->evaluations()->latest()->first();
+        if (!$evaluation) {
+            return response()->json(['message' => 'Transcript evaluation not found. Run AI analysis first.'], 404);
+        }
+
+        $lead = $transcript->lead;
+        if (!$lead) {
+            return response()->json(['message' => 'Associated lead not found.'], 404);
+        }
+
+        $docId = $document ? 'MS-' . str_pad($document->id, 6, '0', STR_PAD_LEFT) : 'MS-' . str_pad($transcript->id, 6, '0', STR_PAD_LEFT);
+        $data = [
+            'transcript' => $transcript,
+            'evaluation' => $evaluation,
+            'lead' => $lead,
+            'documentId' => $docId,
+            'generatedDate' => now()->format('M d, Y H:i'),
+        ];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.meeting-summary', $data);
+
+        $leadName = $lead->company_name ?? $lead->name ?? 'Lead';
+        $meetingDate = $transcript->created_at ? $transcript->created_at->format('Y-m-d') : date('Y-m-d');
+        $rawFilename = "Meeting Summary - {$leadName} - {$transcript->meeting_type} - {$meetingDate}";
+        $safeFilename = preg_replace('/[^A-Za-z0-9\- \_]/', '', $rawFilename);
+        $filename = trim($safeFilename) . '.pdf';
+        $path = 'meeting-summaries/' . $filename;
+
+        // Ensure directory exists and write
+        $fullPath = storage_path('app/public/' . $path);
+        if (!is_dir(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
+        }
+        Storage::disk('public')->put($path, $pdf->output());
+
+        if ($document) {
+            $document->update([
+                'file_name' => $filename,
+                'file_path' => $path,
+                'file_url' => Storage::disk('public')->url($path),
+                'file_mime_type' => 'application/pdf',
+                'file_size' => Storage::disk('public')->size($path),
+                'generation_status' => 'success',
+            ]);
+        } else {
+            MeetingSummaryDocument::create([
+                'transcript_id' => $transcript->id,
+                'lead_id' => $lead->id,
+                'file_name' => $filename,
+                'file_path' => $path,
+                'file_url' => Storage::disk('public')->url($path),
+                'file_mime_type' => 'application/pdf',
+                'file_size' => Storage::disk('public')->size($path),
+                'generation_status' => 'success',
+                'generated_at' => now(),
+                'generated_by' => 'system',
+            ]);
+        }
+
+        return Storage::disk('public')->download($path, $filename);
     }
 }

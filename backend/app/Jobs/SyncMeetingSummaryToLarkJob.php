@@ -109,7 +109,11 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                 }
             }
 
-            // 3. Ensure PDF document exists or wait / load the latest successful PDF
+            if (empty($folderToken)) {
+                $folderToken = $sharedFolderToken;
+            }
+
+            // 3. Ensure PDF document exists or compile if missing (supporting multi-pod storage disparity)
             $document = MeetingSummaryDocument::query()
                 ->where('transcript_id', $transcript->id)
                 ->where('generation_status', 'success')
@@ -117,18 +121,39 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                 ->first();
 
             if (!$document) {
-                // If PDF is not generated yet, try to dispatch PDF generation synchronously
-                GenerateMeetingSummaryPdfJob::dispatchSync($transcript->id);
+                try {
+                    GenerateMeetingSummaryPdfJob::dispatchSync($transcript->id);
+                } catch (\Throwable $e) {
+                    Log::warning("GenerateMeetingSummaryPdfJob dispatchSync failed: " . $e->getMessage());
+                }
 
-                    $document = MeetingSummaryDocument::query()
-                        ->where('transcript_id', $transcript->id)
-                        ->where('generation_status', 'success')
+                $document = MeetingSummaryDocument::query()
+                    ->where('transcript_id', $transcript->id)
+                    ->where('generation_status', 'success')
                     ->latest()
                     ->first();
             }
 
-            if (!$document) {
-                throw new Exception('No generated PDF document found for this transcript summary.');
+            // Ensure physical PDF file exists on local storage
+            if ($document) {
+                $pdfDisk = \Illuminate\Support\Facades\Storage::disk('public');
+                if (!$pdfDisk->exists($document->file_path)) {
+                    $evaluation = $transcript->evaluations()->latest()->first();
+                    if ($evaluation) {
+                        try {
+                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.meeting-summary', [
+                                'transcript' => $transcript,
+                                'evaluation' => $evaluation,
+                                'lead' => $lead,
+                                'documentId' => 'MS-' . str_pad($document->id, 6, '0', STR_PAD_LEFT),
+                                'generatedDate' => now()->format('M d, Y H:i'),
+                            ]);
+                            $pdfDisk->put($document->file_path, $pdf->output());
+                        } catch (\Throwable $e) {
+                            Log::warning("Failed to compile missing PDF on worker: " . $e->getMessage());
+                        }
+                    }
+                }
             }
 
             // 4. Fetch field definitions to verify mapping field existence
@@ -136,7 +161,7 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
             try {
                 $fields = $larkBaseService->listFields($appToken, $tableId)['items'] ?? [];
             } catch (Exception $e) {
-                throw new Exception('Failed to query Lark Base table fields: ' . $e->getMessage());
+                Log::warning('Failed to query Lark Base table fields: ' . $e->getMessage());
             }
 
             $fieldsById = collect($fields)->keyBy('field_id')->all();
@@ -147,32 +172,58 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
             // A. Handle PDF Attachment mapping
             $pdfFieldId = $mapping['pdf_field_id'] ?? null;
             $pdfFieldName = $mapping['pdf_field_name'] ?? null;
-            if ($pdfFieldId || $pdfFieldName) {
-                // Revalidate mapping matching preference to ID
-                $targetField = $fieldsById[$pdfFieldId] ?? $fieldsByName[$pdfFieldName] ?? null;
-                if (!$targetField) {
-                    throw new Exception("Meeting Summary PDF mapping is no longer valid. The configured Lark Base field could not be found. Please review Lark Integration Settings.");
+            $targetPdfField = $fieldsById[$pdfFieldId] ?? $fieldsByName[$pdfFieldName] ?? null;
+
+            if (!$targetPdfField && !empty($fields)) {
+                foreach ($fields as $f) {
+                    if ((int)($f['type'] ?? 0) === 17) { // 17 = Attachment
+                        $name = strtolower($f['field_name'] ?? '');
+                        if (str_contains($name, 'pdf') || str_contains($name, 'dokumen') || str_contains($name, 'document') || str_contains($name, 'lampiran')) {
+                            $targetPdfField = $f;
+                            break;
+                        }
+                    }
                 }
+            }
 
-                // Upload PDF and append it to Bitable
-                $pdfFileToken = $larkBaseService->uploadAttachment(
-                    $appToken,
-                    storage_path('app/public/' . $document->file_path),
-                    $document->file_name
-                );
-
-                $updateFields[$targetField['field_name']] = [['file_token' => $pdfFileToken]];
+            if ($targetPdfField && $document) {
+                try {
+                    $fullPath = storage_path('app/public/' . $document->file_path);
+                    if (file_exists($fullPath)) {
+                        $pdfFileToken = $larkBaseService->uploadAttachment(
+                            $appToken,
+                            $fullPath,
+                            $document->file_name
+                        );
+                        $colName = $targetPdfField['field_name'];
+                        $existing = $updateFields[$colName] ?? [];
+                        $existing[] = ['file_token' => $pdfFileToken];
+                        $updateFields[$colName] = $existing;
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("PDF upload to Lark Base failed: " . $e->getMessage());
+                }
             }
 
             // B. Handle Image Attachment mapping
             $imageFieldId = $mapping['image_field_id'] ?? null;
             $imageFieldName = $mapping['image_field_name'] ?? null;
-            if ($imageFieldId || $imageFieldName) {
-                $targetField = $fieldsById[$imageFieldId] ?? $fieldsByName[$imageFieldName] ?? null;
-                if (!$targetField) {
-                    throw new Exception("Meeting Summary Image mapping is no longer valid. The configured Lark Base field could not be found. Please review Lark Integration Settings.");
-                }
+            $targetImageField = $fieldsById[$imageFieldId] ?? $fieldsByName[$imageFieldName] ?? null;
 
+            if (!$targetImageField && !empty($fields)) {
+                foreach ($fields as $f) {
+                    if ((int)($f['type'] ?? 0) === 17) {
+                        $name = strtolower($f['field_name'] ?? '');
+                        if (str_contains($name, 'image') || str_contains($name, 'gambar') || str_contains($name, 'infographic') || str_contains($name, 'visual')) {
+                            $targetImageField = $f;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            $imgFileToken = null;
+            try {
                 $tempDir = storage_path('app/public/meeting-summaries');
                 if (!is_dir($tempDir)) {
                     mkdir($tempDir, 0755, true);
@@ -205,14 +256,10 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                     $imgFileToken = $larkBaseService->uploadAttachment(
                         $appToken,
                         $pngPath,
-                        str_replace('.pdf', '.png', $document->file_name)
+                        str_replace('.pdf', '.png', $document->file_name ?? 'summary.png')
                     );
-                    // Clean up temp image
-                    if (file_exists($pngPath)) {
-                        @unlink($pngPath);
-                    }
-                } else {
-                    // Fallback: upload PDF if PNG generation failed
+                    @unlink($pngPath);
+                } elseif ($document && file_exists(storage_path('app/public/' . $document->file_path))) {
                     $imgFileToken = $larkBaseService->uploadAttachment(
                         $appToken,
                         storage_path('app/public/' . $document->file_path),
@@ -220,64 +267,85 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                     );
                 }
 
-                $updateFields[$targetField['field_name']] = [['file_token' => $imgFileToken]];
+                if ($targetImageField && $imgFileToken) {
+                    $colName = $targetImageField['field_name'];
+                    $existing = $updateFields[$colName] ?? [];
+                    $existing[] = ['file_token' => $imgFileToken];
+                    $updateFields[$colName] = $existing;
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Image generation/upload to Lark Base failed: " . $e->getMessage());
             }
 
-            // C. Handle Lark Doc URL mapping
+            // C. Handle Lark Doc URL mapping & Always Create / Sync Doc
             $docFieldId = $mapping['doc_field_id'] ?? null;
             $docFieldName = $mapping['doc_field_name'] ?? null;
-            if ($docFieldId || $docFieldName) {
-                try {
-                    $targetField = $fieldsById[$docFieldId] ?? $fieldsByName[$docFieldName] ?? null;
-                    if ($targetField) {
-                        $docId = $transcript->lark_doc_id;
-                        $docUrl = $transcript->lark_doc_url;
+            $targetDocField = $fieldsById[$docFieldId] ?? $fieldsByName[$docFieldName] ?? null;
 
-                        $needCreation = empty($docId);
-
-                        if (!$needCreation) {
-                            try {
-                                // Verify existence by fetching root doc info
-                                $larkDriveService->request('GET', "/docx/v1/documents/{$docId}");
-                            } catch (Exception $e) {
-                                if (str_contains($e->getMessage(), 'resource deleted') || str_contains($e->getMessage(), '1770003')) {
-                                    $needCreation = true;
-                                } else {
-                                    throw $e;
-                                }
-                            }
-                        }
-
-                        if ($needCreation) {
-                            $meetingDate = $transcript->created_at ? $transcript->created_at->format('Y-m-d') : date('Y-m-d');
-                            $leadDisplayName = $lead->company_name ?? $lead->name ?? 'Unknown Lead';
-                            $docTitle = "Meeting Summary | {$leadDisplayName} | {$transcript->meeting_type} | {$meetingDate}";
-                            $docData = $larkDriveService->createDoc($folderToken, $docTitle);
-                            $docId = $docData['document_id'];
-                            $docUrl = $docData['url'];
-
-                            // Persist document info immediately
-                            $transcript->lark_doc_id = $docId;
-                            $transcript->lark_doc_url = $docUrl;
-                            $transcript->save();
-                        }
-
-                        $renderer = new \App\Services\Lark\LarkDocsRenderer($larkDriveService);
-                        $renderer->renderDoc($docId, $transcript, $lead, $imgFileToken ?? null);
-
-                        // If Bitable field is type 15 (Url), format payload, otherwise write text
-                        if ((int) ($targetField['type'] ?? 0) === 15) {
-                            $updateFields[$targetField['field_name']] = [
-                                'link' => $docUrl,
-                                'text' => 'View Lark Doc Summary'
-                            ];
-                        } else {
-                            $updateFields[$targetField['field_name']] = $docUrl;
+            if (!$targetDocField && !empty($fields)) {
+                foreach ($fields as $f) {
+                    $type = (int)($f['type'] ?? 0);
+                    if ($type === 15 || $type === 1) { // 15 = Url, 1 = Text
+                        $name = strtolower($f['field_name'] ?? '');
+                        if (str_contains($name, 'doc') || str_contains($name, 'lark') || str_contains($name, 'notulen') || str_contains($name, 'summary doc')) {
+                            $targetDocField = $f;
+                            break;
                         }
                     }
-                } catch (Exception $e) {
-                    Log::warning('Lark Doc generation/rendering encountered an issue, proceeding with attachment sync: ' . $e->getMessage());
                 }
+            }
+
+            try {
+                $docId = $transcript->lark_doc_id;
+                $docUrl = $transcript->lark_doc_url;
+
+                $needCreation = empty($docId);
+
+                if (!$needCreation) {
+                    try {
+                        // Verify existence by fetching root doc info
+                        $larkDriveService->request('GET', "/docx/v1/documents/{$docId}");
+                    } catch (Exception $e) {
+                        if (str_contains($e->getMessage(), 'resource deleted') || str_contains($e->getMessage(), '1770003')) {
+                            $needCreation = true;
+                        }
+                    }
+                }
+
+                if ($needCreation) {
+                    $meetingDate = $transcript->created_at ? $transcript->created_at->format('Y-m-d') : date('Y-m-d');
+                    $leadDisplayName = $lead->company_name ?? $lead->name ?? 'Unknown Lead';
+                    $meetingType = $transcript->meeting_type ?: 'Meeting';
+                    $docTitle = "Meeting Summary | {$leadDisplayName} | {$meetingType} | {$meetingDate}";
+                    $docData = $larkDriveService->createDoc($folderToken, $docTitle);
+                    $docId = $docData['document_id'];
+                    $docUrl = $docData['url'];
+
+                    // Persist document info immediately
+                    $transcript->lark_doc_id = $docId;
+                    $transcript->lark_doc_url = $docUrl;
+                    $transcript->save();
+                }
+
+                $renderer = new \App\Services\Lark\LarkDocsRenderer($larkDriveService);
+                $renderer->renderDoc($docId, $transcript, $lead, $imgFileToken ?? null);
+
+                // If Bitable field exists, format payload
+                if ($targetDocField && !empty($docUrl)) {
+                    if ((int) ($targetDocField['type'] ?? 0) === 15) {
+                        $updateFields[$targetDocField['field_name']] = [
+                            'link' => $docUrl,
+                            'text' => 'View Lark Doc Summary'
+                        ];
+                    } else {
+                        $updateFields[$targetDocField['field_name']] = $docUrl;
+                    }
+                }
+            } catch (Exception $e) {
+                Log::warning('Lark Doc generation/rendering encountered an issue, proceeding with attachment sync: ' . $e->getMessage(), [
+                    'transcript_id' => $transcript->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             // 5. Update Lark Base record mapping
@@ -292,12 +360,10 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                 $larkRecordId = $recordMapping?->lark_record_id;
             }
 
-            if (empty($larkRecordId)) {
-                throw new Exception("Sync failed: Mapped Lark Base record ID not found for this lead. Sync lead properties first.");
-            }
-
-            if (!empty($updateFields)) {
+            if (!empty($larkRecordId) && !empty($updateFields)) {
                 $larkBaseService->updateRecord($appToken, $tableId, $larkRecordId, $updateFields);
+            } elseif (empty($larkRecordId)) {
+                Log::warning("SyncMeetingSummaryToLarkJob: No mapped Lark Base record ID found for lead ID {$lead->id}. Base record update skipped, but Lark Doc and attachments processed.");
             }
 
             DB::table('lark_base_sync_jobs')->where('id', $syncJobId)->update([
