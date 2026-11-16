@@ -29,6 +29,8 @@ class ImportLarkMeetingTranscriptJob implements ShouldQueue
     public function __construct(int $transcriptId)
     {
         $this->transcriptId = $transcriptId;
+        $this->onQueue('intelligence');
+        $this->afterCommit();
     }
 
     /**
@@ -38,16 +40,25 @@ class ImportLarkMeetingTranscriptJob implements ShouldQueue
     {
         $transcript = LeadTranscript::with('lead')->find($this->transcriptId);
         if (!$transcript) {
-            return;
+            Log::warning('ImportLarkMeetingTranscriptJob: transcript record not found yet, retrying', ['transcript_id' => $this->transcriptId]);
+            throw new \RuntimeException("Transcript ID {$this->transcriptId} not found");
         }
 
         $lead = $transcript->lead;
+        if (!$lead) {
+            $this->failImport($transcript, 'LEAD_NOT_FOUND', 'Associated lead record not found.');
+            return;
+        }
 
         try {
             // 1. Resolve Integration
             $integration = LarkIntegration::where('tenant_id', $lead->tenant_id)->where('is_active', true)->first();
             if (!$integration) {
-                $this->failImport($transcript, 'LARK_INTEGRATION_NOT_CONFIGURED', 'Lark integration has not been configured.');
+                // Fallback to any active integration if tenant_id matches global
+                $integration = LarkIntegration::where('is_active', true)->first();
+            }
+            if (!$integration) {
+                $this->failImport($transcript, 'LARK_INTEGRATION_NOT_CONFIGURED', 'Lark integration has not been configured or is inactive.');
                 return;
             }
 
@@ -73,12 +84,15 @@ class ImportLarkMeetingTranscriptJob implements ShouldQueue
             } elseif ($parsed['type'] === 'meetingId') {
                 $meetingId = $parsed['id'];
                 
-                // Application-level duplicate check for meetingId
+                // Application-level duplicate check for meetingId (only if other record has actual transcript text)
                 $existing = LeadTranscript::where('meeting_id', $meetingId)
                     ->where('id', '!=', $transcript->id)
                     ->whereHas('lead', function($q) use ($lead) {
                         $q->where('tenant_id', $lead->tenant_id);
-                    })->first();
+                    })
+                    ->whereNotNull('transcript_text')
+                    ->where('transcript_text', '!=', '')
+                    ->first();
                 
                 if ($existing) {
                     $this->failImport($transcript, 'TRANSCRIPT_ALREADY_IMPORTED', 'This meeting transcript has already been imported on lead: ' . $existing->lead_id);
@@ -87,7 +101,7 @@ class ImportLarkMeetingTranscriptJob implements ShouldQueue
 
                 $recordingInfo = $larkService->getMeetingRecording($meetingId);
                 if (!$recordingInfo || empty($recordingInfo['url'])) {
-                    $this->failImport($transcript, 'LARK_RECORDING_NOT_AVAILABLE', 'No recording is available for this meeting.');
+                    $this->failImport($transcript, 'LARK_RECORDING_NOT_AVAILABLE', 'No recording or minutes is available for this meeting in Lark.');
                     return;
                 }
 
@@ -103,19 +117,22 @@ class ImportLarkMeetingTranscriptJob implements ShouldQueue
                 if ($parsedRec['type'] === 'minuteToken') {
                     $minuteToken = $parsedRec['id'];
                 } else {
-                    $this->failImport($transcript, 'LARK_MINUTES_URL_NOT_FOUND', 'Lark Minutes could not be resolved for this meeting.');
+                    $this->failImport($transcript, 'LARK_MINUTES_URL_NOT_FOUND', 'Lark Minutes could not be resolved from meeting recording URL.');
                     return;
                 }
             }
 
-            // 4. Validate duplicate by Minute Token
+            // 4. Validate duplicate by Minute Token (only if other record has actual transcript text)
             $transcript->update(['minute_token' => $minuteToken]);
             
             $existingByToken = LeadTranscript::where('minute_token', $minuteToken)
                 ->where('id', '!=', $transcript->id)
                 ->whereHas('lead', function($q) use ($lead) {
                     $q->where('tenant_id', $lead->tenant_id);
-                })->first();
+                })
+                ->whereNotNull('transcript_text')
+                ->where('transcript_text', '!=', '')
+                ->first();
                 
             if ($existingByToken) {
                 $this->failImport($transcript, 'TRANSCRIPT_ALREADY_IMPORTED', 'This meeting transcript has already been imported on lead: ' . $existingByToken->lead_id);
@@ -127,7 +144,7 @@ class ImportLarkMeetingTranscriptJob implements ShouldQueue
             
             try {
                 $transcriptText = $larkService->exportTranscript($minuteToken);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 if ($e->getCode() === 2091003) {
                     if ($this->attempts() < 5) {
                         $transcript->update([
@@ -165,7 +182,7 @@ class ImportLarkMeetingTranscriptJob implements ShouldQueue
 
             // 6. Trigger Comprehensive AI Analysis & Post-Processing Pipeline
             $transcript->update([
-                'evaluation_status' => 'pending'
+                'evaluation_status' => 'analyzing'
             ]);
             
             \Illuminate\Support\Facades\Bus::chain([
@@ -176,7 +193,7 @@ class ImportLarkMeetingTranscriptJob implements ShouldQueue
                 new \App\Jobs\SyncMeetingSummaryPdfToLarkBaseJob($transcript->id),
             ])->dispatch();
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('ImportLarkMeetingTranscriptJob failed', [
                 'transcript_id' => $this->transcriptId,
                 'error' => $e->getMessage(),

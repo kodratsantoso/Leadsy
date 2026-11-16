@@ -45,6 +45,7 @@ interface TranscriptsTabProps {
   setEvaluatingTranscriptId: React.Dispatch<React.SetStateAction<number | null>> | ((id: any) => void);
   evaluateTranscriptMutation: any;
   fetchTranscriptLinkMutation: any;
+  retryImportTranscriptMutation?: any;
   generateMeetingSummaryPdfMutation: any;
   deleteTranscriptMutation: any;
   storeTranscriptMutation: any;
@@ -69,6 +70,7 @@ export function TranscriptsTab({
   setEvaluatingTranscriptId,
   evaluateTranscriptMutation,
   fetchTranscriptLinkMutation,
+  retryImportTranscriptMutation,
   generateMeetingSummaryPdfMutation,
   deleteTranscriptMutation,
   storeTranscriptMutation,
@@ -386,7 +388,40 @@ export function TranscriptsTab({
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
-                    {tr.evaluation_status !== 'evaluated' && (
+                    {/* Link-based transcript importing state */}
+                    {tr.source_type === 'link' && !tr.transcript_text?.trim() ? (
+                      tr.import_status === 'FAILED' ? (
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => retryImportTranscriptMutation?.mutate(tr.id)}
+                          disabled={retryImportTranscriptMutation?.isPending}
+                        >
+                          {retryImportTranscriptMutation?.isPending ? (
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          ) : (
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                          )}
+                          Retry Import
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <Button variant="outline" size="xs" disabled>
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            Importing...
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            title="Retry import if stalled"
+                            onClick={() => retryImportTranscriptMutation?.mutate(tr.id)}
+                            disabled={retryImportTranscriptMutation?.isPending}
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )
+                    ) : tr.evaluation_status !== 'evaluated' ? (
                       <Button
                         variant="outline"
                         size="xs"
@@ -396,26 +431,25 @@ export function TranscriptsTab({
                         }}
                         disabled={
                           (evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) ||
-                          tr.evaluation_status === 'pending' ||
                           tr.evaluation_status === 'analyzing' ||
                           !tr.transcript_text?.trim()
                         }
                         title={!tr.transcript_text?.trim() ? 'Add transcript text before AI analysis' : undefined}
                       >
                         {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) ||
-                        tr.evaluation_status === 'pending' ||
                         tr.evaluation_status === 'analyzing' ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
                         ) : (
-                          <Sparkles className="h-3 w-3" />
+                          <Sparkles className="h-3 w-3 mr-1" />
                         )}
                         {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) ||
-                        tr.evaluation_status === 'pending' ||
                         tr.evaluation_status === 'analyzing'
                           ? 'Analysing...'
-                          : 'Analyse with AI'}
+                          : tr.evaluation_status === 'failed'
+                            ? 'Retry Analysis'
+                            : 'Analyse with AI'}
                       </Button>
-                    )}
+                    ) : null}
                     {evaluation && (
                       <>
                         <Button
@@ -427,21 +461,18 @@ export function TranscriptsTab({
                           }}
                           disabled={
                             (evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) ||
-                            tr.evaluation_status === 'pending' ||
                             tr.evaluation_status === 'analyzing' ||
                             !tr.transcript_text?.trim()
                           }
                           title="Re-run AI Analysis"
                         >
                           {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) ||
-                          tr.evaluation_status === 'pending' ||
                           tr.evaluation_status === 'analyzing' ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
                           ) : (
-                            <RefreshCw className="h-3 w-3" />
+                            <RefreshCw className="h-3 w-3 mr-1" />
                           )}
                           {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) ||
-                          tr.evaluation_status === 'pending' ||
                           tr.evaluation_status === 'analyzing'
                             ? 'Analysing...'
                             : 'Re-analyse'}
@@ -554,9 +585,34 @@ export function TranscriptsTab({
                     <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-wrap">
                       {tr.transcript_text}
                     </p>
+                  ) : tr.import_status === 'FAILED' ? (
+                    <div className="flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        Gagal mengimpor transkrip{tr.import_error_message ? `: ${tr.import_error_message}` : '.'} Klik tombol "Retry Import" untuk mencoba kembali.
+                      </span>
+                    </div>
+                  ) : ['VALIDATING_LINK', 'RESOLVING_RECORDING', 'EXPORTING_TRANSCRIPT', 'PROCESSING_IN_LARK'].includes(tr.import_status) ? (
+                    <div className="flex items-center gap-1.5 text-xs text-[var(--status-warning)]">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                      <span>
+                        {tr.import_status === 'VALIDATING_LINK' && 'Sedang memvalidasi tautan meeting Lark...'}
+                        {tr.import_status === 'RESOLVING_RECORDING' && 'Sedang menghubungkan rekaman dan Lark Minutes...'}
+                        {tr.import_status === 'EXPORTING_TRANSCRIPT' && 'Sedang mengekstrak teks transkrip dari Lark Minutes...'}
+                        {tr.import_status === 'PROCESSING_IN_LARK' && 'Transkrip masih diproses oleh AI Lark. Akan dicoba ulang otomatis...'}
+                      </span>
+                    </div>
+                  ) : tr.source_type === 'link' ? (
+                    <p className="text-xs text-muted-foreground">
+                      Menunggu pengambilan transkrip dari tautan meeting Lark.
+                    </p>
+                  ) : tr.source_type === 'whatsapp' ? (
+                    <p className="text-xs text-muted-foreground">
+                      Percakapan WhatsApp tersimpan. Tambahkan teks atau file ekspor chat untuk dianalisis AI.
+                    </p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      Media file saved. Add or paste transcript text before running AI analysis.
+                      File media tersimpan sebagai arsip rekaman. Tambahkan transkrip teks jika ingin dianalisis AI.
                     </p>
                   )}
                 </div>

@@ -170,6 +170,25 @@ class LeadTranscriptController extends Controller
                 })->first();
                 
             if ($existing) {
+                // If it belongs to this lead and transcript_text is empty or import not completed, restart import
+                if ($existing->lead_id === $lead->id && empty($existing->transcript_text)) {
+                    $existing->update([
+                        'title' => !empty($data['title']) ? $data['title'] : $existing->title,
+                        'meeting_type' => !empty($data['meeting_type']) ? $data['meeting_type'] : $existing->meeting_type,
+                        'activity_id' => !empty($data['activity_id']) ? $data['activity_id'] : $existing->activity_id,
+                        'source_url' => $url,
+                        'import_status' => 'VALIDATING_LINK',
+                        'import_error_code' => null,
+                        'import_error_message' => null,
+                        'evaluation_status' => 'pending',
+                    ]);
+                    \App\Jobs\ImportLarkMeetingTranscriptJob::dispatch($existing->id);
+                    return response()->json([
+                        'data' => $existing->load('activity:id,activity_type,activity_date,description'),
+                        'message' => 'Transcript import restarted successfully.',
+                    ], 200);
+                }
+
                 return response()->json([
                     'message' => 'Transcript already imported on lead: ' . $existing->lead_id,
                     'duplicate' => true,
@@ -184,6 +203,25 @@ class LeadTranscriptController extends Controller
                 })->first();
                 
             if ($existing) {
+                // If it belongs to this lead and transcript_text is empty or import not completed, restart import
+                if ($existing->lead_id === $lead->id && empty($existing->transcript_text)) {
+                    $existing->update([
+                        'title' => !empty($data['title']) ? $data['title'] : $existing->title,
+                        'meeting_type' => !empty($data['meeting_type']) ? $data['meeting_type'] : $existing->meeting_type,
+                        'activity_id' => !empty($data['activity_id']) ? $data['activity_id'] : $existing->activity_id,
+                        'source_url' => $url,
+                        'import_status' => 'VALIDATING_LINK',
+                        'import_error_code' => null,
+                        'import_error_message' => null,
+                        'evaluation_status' => 'pending',
+                    ]);
+                    \App\Jobs\ImportLarkMeetingTranscriptJob::dispatch($existing->id);
+                    return response()->json([
+                        'data' => $existing->load('activity:id,activity_type,activity_date,description'),
+                        'message' => 'Transcript import restarted successfully.',
+                    ], 200);
+                }
+
                 return response()->json([
                     'message' => 'Transcript already imported on lead: ' . $existing->lead_id,
                     'duplicate' => true,
@@ -260,6 +298,32 @@ class LeadTranscriptController extends Controller
         ])->dispatch();
 
         return response()->json(['message' => 'Evaluation queued', 'data' => []], 202);
+    }
+
+    /** POST /api/leads/{lead}/transcripts/{transcript}/retry-import */
+    public function retryImportTranscript(Lead $lead, $transcriptId): JsonResponse
+    {
+        $transcript = $lead->transcripts()->findOrFail($transcriptId);
+
+        if ($transcript->source_type !== 'link' && empty($transcript->source_url)) {
+            return response()->json([
+                'message' => 'Only link-sourced transcripts can be re-imported.',
+            ], 422);
+        }
+
+        $transcript->update([
+            'import_status' => 'VALIDATING_LINK',
+            'import_error_code' => null,
+            'import_error_message' => null,
+            'evaluation_status' => 'pending',
+        ]);
+
+        \App\Jobs\ImportLarkMeetingTranscriptJob::dispatch($transcript->id);
+
+        return response()->json([
+            'data' => $transcript->load('activity:id,activity_type,activity_date,description'),
+            'message' => 'Transcript import restarted successfully.',
+        ], 200);
     }
 
     /** GET /api/leads/{lead}/evaluations */

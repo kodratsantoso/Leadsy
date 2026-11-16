@@ -1410,6 +1410,24 @@ export default function LeadDetailPage() {
     }
   });
 
+  const retryImportTranscriptMutation = useMutation({
+    mutationFn: async (transcriptId: number | string) => {
+      const res = await apiFetch(`/leads/${leadId}/transcripts/${transcriptId}/retry-import`, {
+        method: 'POST',
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message || 'Failed to retry transcript import.');
+      return json;
+    },
+    onSuccess: () => {
+      refetchTranscripts();
+      setTranscriptFeedback({ type: 'success', msg: 'Transcript import restarted.' });
+    },
+    onError: (err: any) => {
+      setTranscriptFeedback({ type: 'error', msg: err.message || 'Failed to restart transcript import.' });
+    }
+  });
+
   const generateMeetingSummaryPdfMutation = useMutation({
     mutationFn: async ({ transcriptId, evaluationId }: { transcriptId: number; evaluationId?: number }) => {
       const res = await apiFetch(`/transcripts/meeting-summary/generate`, {
@@ -2177,6 +2195,7 @@ export default function LeadDetailPage() {
           setEvaluatingTranscriptId={setEvaluatingTranscriptId}
           evaluateTranscriptMutation={evaluateTranscriptMutation}
           fetchTranscriptLinkMutation={fetchTranscriptLinkMutation}
+          retryImportTranscriptMutation={retryImportTranscriptMutation}
           generateMeetingSummaryPdfMutation={generateMeetingSummaryPdfMutation}
           deleteTranscriptMutation={deleteTranscriptMutation}
           storeTranscriptMutation={storeTranscriptMutation}

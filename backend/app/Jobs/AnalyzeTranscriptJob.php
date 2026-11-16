@@ -25,6 +25,8 @@ class AnalyzeTranscriptJob implements ShouldQueue
      */
     public function __construct(public int $transcriptId)
     {
+        $this->onQueue('intelligence');
+        $this->afterCommit();
     }
 
     /**
@@ -39,7 +41,7 @@ class AnalyzeTranscriptJob implements ShouldQueue
             return;
         }
 
-        $transcript->update(['evaluation_status' => 'pending']);
+        $transcript->update(['evaluation_status' => 'analyzing']);
         
         try {
             $summaryService->generate($transcript);
@@ -62,7 +64,7 @@ class AnalyzeTranscriptJob implements ShouldQueue
 
             // Trigger rescoring and qualification update post-transcript analysis
             app(\App\Services\Sales\LeadInteractionRescoreService::class)->triggerRescore($transcript->lead, 'transcript_analyzed');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $transcript->update(['evaluation_status' => 'failed']);
             Log::error("AI analysis failed for transcript ID {$transcript->id}: " . $e->getMessage());
             $this->fail($e);

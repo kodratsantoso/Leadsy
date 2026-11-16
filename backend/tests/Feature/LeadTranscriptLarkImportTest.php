@@ -82,12 +82,54 @@ class LeadTranscriptLarkImportTest extends TestCase
             return true;
         });
 
-        // Test immediate duplicate prevention
-        $duplicateResponse = $this->actingAs($this->user)
+        // When re-submitting the same link on the same lead with empty text, it restarts import (status 200)
+        $restartResponse = $this->actingAs($this->user)
             ->postJson("/api/leads/{$this->lead->id}/transcripts/fetch-link", $payload);
+
+        $restartResponse->assertStatus(200);
+        $this->assertEquals('Transcript import restarted successfully.', $restartResponse->json('message'));
+
+        // When another lead tries to import the same minute token, it returns 409 duplicate
+        $lead2 = Lead::create([
+            'tenant_id' => $this->tenant->id,
+            'company_name' => 'Second Corp',
+            'contact_name' => 'John Smith',
+            'stage' => 'qualified',
+        ]);
+
+        $duplicateResponse = $this->actingAs($this->user)
+            ->postJson("/api/leads/{$lead2->id}/transcripts/fetch-link", $payload);
 
         $duplicateResponse->assertStatus(409);
         $this->assertTrue($duplicateResponse->json('duplicate'));
+    }
+
+    public function test_it_allows_retrying_stalled_or_failed_transcript_import()
+    {
+        $transcript = $this->lead->transcripts()->create([
+            'title' => 'Stalled Meeting',
+            'source_type' => 'link',
+            'source_provider' => 'LARK',
+            'source_url' => 'https://company.larksuite.com/minutes/detail/obcn7m0x5544sxxxxxxxx',
+            'minute_token' => 'obcn7m0x5544sxxxxxxxx',
+            'import_status' => 'FAILED',
+            'import_error_message' => 'Lark minutes transcription is currently being processed by Lark AI.',
+            'evaluation_status' => 'failed',
+            'recorded_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson("/api/leads/{$this->lead->id}/transcripts/{$transcript->id}/retry-import");
+
+        $response->assertStatus(200);
+        $this->assertEquals('Transcript import restarted successfully.', $response->json('message'));
+
+        $transcript->refresh();
+        $this->assertEquals('VALIDATING_LINK', $transcript->import_status);
+        $this->assertEquals('pending', $transcript->evaluation_status);
+        $this->assertNull($transcript->import_error_message);
+
+        Queue::assertPushed(ImportLarkMeetingTranscriptJob::class);
     }
 
     public function test_it_handles_save_transcript_analysis_with_json_query()

@@ -621,6 +621,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('leads/{lead}/transcripts/fetch-link', [LeadTranscriptController::class, 'fetchTranscriptFromLink'])->middleware('permission:leads.edit');
     Route::delete('leads/{lead}/transcripts/{transcript}', [LeadTranscriptController::class, 'deleteTranscript'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/transcripts/{transcript}/evaluate', [LeadTranscriptController::class, 'evaluateTranscript'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/transcripts/{transcript}/retry-import', [LeadTranscriptController::class, 'retryImportTranscript'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/evaluations', [LeadTranscriptController::class, 'getEvaluations'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/follow-ups', [LeadActivityController::class, 'getFollowUps'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/sync-lark', [\App\Http\Controllers\Api\LarkController::class, 'syncSingleLead'])->middleware('permission:leads.edit');
