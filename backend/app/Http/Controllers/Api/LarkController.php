@@ -9,6 +9,7 @@ use App\Models\LarkEvent;
 use App\Models\LarkIntegration;
 use App\Models\LarkSync;
 use App\Models\Lead;
+use App\Services\Lark\LarkAppRegistrationService;
 use App\Services\Lark\LarkBaseService;
 use App\Services\Lark\LarkDriveService;
 use App\Services\Lark\LarkService;
@@ -47,6 +48,54 @@ class LarkController extends Controller
             'enabled_modules' => $integration->enabled_modules ?? [],
             'last_sync_at' => $integration->last_sync_at,
         ]);
+    }
+
+    /**
+     * Start One-Click Lark App Registration via Device Flow
+     */
+    public function startAppRegistration(Request $request, LarkAppRegistrationService $service)
+    {
+        $user = Auth::user();
+        $brand = $request->input('brand', 'lark');
+        $appName = $request->input('app_name', 'Leadsy AI');
+        $appDesc = $request->input('app_desc', 'AI-Powered Sales Intelligence & CRM Engine');
+
+        try {
+            $result = $service->initiateRegistration([
+                'brand' => $brand,
+                'name' => $appName,
+                'desc' => $appDesc,
+                'tenant_id' => $user?->tenant_id,
+                'user_id' => $user?->id,
+            ]);
+
+            return response()->json($result);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate Lark app registration: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Poll One-Click Lark App Registration Status
+     */
+    public function pollAppRegistration(Request $request, LarkAppRegistrationService $service)
+    {
+        $request->validate([
+            'device_code' => 'required|string',
+        ]);
+
+        try {
+            $result = $service->pollStatus($request->device_code);
+            return response()->json($result);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'Poll failed: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

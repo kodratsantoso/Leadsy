@@ -20,6 +20,8 @@ import { describeThrown } from "@/lib/apiError";
 import { EmailIntegrationSubTab } from "@/components/settings/EmailIntegrationSubTab";
 import { MekariSignIntegrationSubTab } from "@/components/settings/MekariSignIntegrationSubTab";
 import { SearchEnginesIntegrationSubTab } from "@/components/settings/SearchEnginesIntegrationSubTab";
+import { LarkOneClickModal } from "@/components/integrations/LarkOneClickModal";
+import { useToast } from "@/components/ui/toast";
 import {
   Table,
   TableBody,
@@ -529,6 +531,7 @@ function createDefaultLeadPlatforms(): Record<string, IntegrationConfig> {
 }
 
 function IntegrationsSettingsContent() {
+  const toast = useToast();
   const searchParams = useSearchParams();
   const queryTab = searchParams.get("tab") as TabKey | null;
   const validTabs: TabKey[] = ["lead_platforms", "maps", "whatsapp", "email", "mekari_sign", "lusha", "webhooks", "lark", "linkedin", "search_engines"];
@@ -564,6 +567,7 @@ function IntegrationsSettingsContent() {
     encrypt_key: '',
     base_url: '',
   });
+  const [showLarkOneClickModal, setShowLarkOneClickModal] = useState(false);
   const [larkModules, setLarkModules] = useState({
     messenger: false,
     meeting: false,
@@ -2740,7 +2744,38 @@ function IntegrationsSettingsContent() {
           </div>
 
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Lark SSO Credentials</h3>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">Lark Custom App Credentials</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Configure your Lark integration manually or use 1-Click auto-provisioning.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={() => setShowLarkOneClickModal(true)}
+              >
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                ⚡ 1-Click Auto Provision App
+              </Button>
+            </div>
+
+            <LarkOneClickModal
+              open={showLarkOneClickModal}
+              onOpenChange={setShowLarkOneClickModal}
+              isPublic={false}
+              onSuccess={(creds) => {
+                setLarkConfig((prev) => ({
+                  ...prev,
+                  app_id: creds.app_id,
+                }));
+                refetchLarkConfig();
+                toast.success('Lark Custom App created and linked successfully!');
+              }}
+            />
             <div className="rounded-xl border border-border/50 bg-[var(--background)] p-4 mb-4">
               <p className="text-sm font-medium">Redirect URL for Lark Custom App</p>
               <p className="text-xs text-muted-foreground mt-1">

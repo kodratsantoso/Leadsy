@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Loader2, AlertCircle, CheckCircle2, Mail, ArrowLeft, RefreshCw, LogIn } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, Mail, ArrowLeft, RefreshCw, LogIn, Sparkles } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { apiFetch } from "@/lib/apiFetch";
 import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { describeThrown } from "@/lib/apiError";
+import { LarkOneClickModal } from "@/components/integrations/LarkOneClickModal";
 
 type Mode = "login" | "register" | "2fa";
 type RegisterStep = "form" | "otp";
@@ -54,6 +55,7 @@ export default function LoginPage() {
   const [registerLoading, setRegisterLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [larkLoginLoading, setLarkLoginLoading] = useState(false);
+  const [showOneClickModal, setShowOneClickModal] = useState(false);
   const [tenants, setTenants] = useState<{ id: number; name: string; slug: string }[]>([]);
   const [tenantsLoading, setTenantsLoading] = useState(false);
   const [tenantFetchError, setTenantFetchError] = useState("");
@@ -408,6 +410,17 @@ export default function LoginPage() {
                 {larkLoginLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
                 {larkLoginLoading ? "Redirecting to Lark..." : "Login with Lark"}
               </button>
+              <div className="relative my-1 flex items-center justify-center">
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wider">or new company</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowOneClickModal(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-[color:var(--brand)]/30 bg-[color:var(--brand-soft)] py-2 text-xs font-semibold text-[color:var(--brand)] transition-colors hover:bg-[color:var(--brand)]/15"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-[color:var(--brand)]" />
+                Connect New Workspace with Lark (1-Click)
+              </button>
             </div>
             <p className="text-center text-xs text-muted-foreground pt-1">
               Don&apos;t have an account?{" "}
@@ -539,6 +552,12 @@ export default function LoginPage() {
             </div>
           </form>
         )}
+
+        <LarkOneClickModal
+          open={showOneClickModal}
+          onOpenChange={setShowOneClickModal}
+          isPublic={true}
+        />
       </div>
     </div>
   );

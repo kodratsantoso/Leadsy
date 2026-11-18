@@ -91,6 +91,8 @@ Route::prefix('auth')->group(function () {
     Route::get('lark/tenants', [AuthController::class, 'getLarkTenants']);
     Route::get('lark/auth-url', [AuthController::class, 'getLarkAuthUrl']);
     Route::post('lark/callback', [AuthController::class, 'handleLarkCallback']);
+    Route::post('lark/register-app/start', [LarkController::class, 'startAppRegistration']);
+    Route::post('lark/register-app/poll', [LarkController::class, 'pollAppRegistration']);
 });
 
 // ── Public Integrations (e.g. Browser Maps Key, APP_NAME, APP_ENV) ──
@@ -850,6 +852,8 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
         Route::post('config', [LarkController::class, 'saveConfig'])->middleware('permission:integrations.manage');
         Route::post('test-connection', [LarkController::class, 'testConnection'])->middleware('permission:integrations.manage');
         Route::post('toggle-module', [LarkController::class, 'toggleModule'])->middleware('permission:integrations.manage');
+        Route::post('register-app/start', [LarkController::class, 'startAppRegistration'])->middleware('permission:integrations.manage');
+        Route::post('register-app/poll', [LarkController::class, 'pollAppRegistration'])->middleware('permission:integrations.manage');
         Route::get('status', [LarkController::class, 'getStatus']);
         Route::get('sync-history', [LarkController::class, 'getSyncHistory'])->middleware('permission:audit.view');
         Route::get('event-log', [LarkController::class, 'getEventLog'])->middleware('permission:audit.view');
