@@ -3,7 +3,7 @@
 import { useState, useEffect, type ComponentType, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download, Lock, Play, XCircle, Info, ExternalLink, Sparkles, FileCheck, Mail } from "lucide-react";
+import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download, Lock, Play, XCircle, Info, ExternalLink, Sparkles, FileCheck, Mail, Copy } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { cn } from "@/lib/utils";
@@ -2776,17 +2776,66 @@ function IntegrationsSettingsContent() {
                 toast.success('Lark Custom App created and linked successfully!');
               }}
             />
-            <div className="rounded-xl border border-border/50 bg-[var(--background)] p-4 mb-4">
-              <p className="text-sm font-medium">Redirect URL for Lark Custom App</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Daftarkan URL ini di Lark App → Redirect URLs. Leadsy akan menggunakan URL ini untuk menerima authorization code dari Lark.
-              </p>
-              <code className="mt-2 block rounded bg-secondary/50 px-2 py-1 text-xs">
-                {typeof window !== 'undefined' ? `${window.location.origin}/auth/lark/callback` : 'https://your-domain.com/auth/lark/callback'}
-              </code>
-              <p className="text-xs text-muted-foreground mt-2">
-                Jangan tambahkan query string atau parameter tambahan. Tenant dipilih lewat state internal Leadsy.
-              </p>
+            <div className="grid gap-4 sm:grid-cols-2 mb-4">
+              <div className="rounded-xl border border-border/50 bg-[var(--background)] p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-semibold flex items-center gap-1.5">
+                      <Globe2 className="h-4 w-4 text-primary" />
+                      Redirect URL (OAuth / SSO)
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      type="button"
+                      onClick={() => {
+                        const url = typeof window !== 'undefined' ? `${window.location.origin}/auth/lark/callback` : 'https://leadsy.tech/auth/lark/callback';
+                        navigator.clipboard.writeText(url);
+                        toast.success('Redirect URL copied to clipboard');
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-1" />
+                      Copy
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Daftarkan di Lark Developer Console → <strong>Security Settings → Redirect URLs</strong>.
+                  </p>
+                </div>
+                <code className="mt-2 block rounded bg-secondary/50 px-2.5 py-1.5 text-xs font-mono break-all text-primary">
+                  {typeof window !== 'undefined' ? `${window.location.origin}/auth/lark/callback` : 'https://leadsy.tech/auth/lark/callback'}
+                </code>
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-[var(--background)] p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-semibold flex items-center gap-1.5">
+                      <Share2 className="h-4 w-4 text-emerald-500" />
+                      Request URL (Event & Callback Webhook)
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      type="button"
+                      onClick={() => {
+                        const url = typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/lark` : 'https://leadsy.tech/api/webhooks/lark';
+                        navigator.clipboard.writeText(url);
+                        toast.success('Request URL copied to clipboard');
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-1" />
+                      Copy
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Daftarkan di Lark Developer Console → <strong>Event Configuration</strong> & <strong>Callback Configuration → Request URL</strong>.
+                  </p>
+                </div>
+                <code className="mt-2 block rounded bg-secondary/50 px-2.5 py-1.5 text-xs font-mono break-all text-emerald-500">
+                  {typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/lark` : 'https://leadsy.tech/api/webhooks/lark'}
+                </code>
+              </div>
             </div>
             <div className="grid gap-4">
               <div>
