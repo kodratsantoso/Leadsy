@@ -18,8 +18,9 @@ import {
   Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown, ChevronUp,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
-  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown, GitBranch, GitMerge, Link as LinkIcon, Globe2
+  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown, GitBranch, GitMerge, Link as LinkIcon, Globe2, MoreHorizontal
 } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -131,6 +132,102 @@ function qualificationLabel(value?: string | null) {
  * notice pointing at Activities so old ?tab=meetings links keep working, but it
  * is not something to send people to.
  */
+type PrimaryTabKey = 'profile' | 'intelligence' | 'commercial' | 'delivery' | 'timeline';
+
+interface WorkflowTabDefinition {
+  id: PrimaryTabKey;
+  label: string;
+  icon: any;
+  defaultSubTab: string;
+  subTabs: { id: string; label: string }[];
+}
+
+const PRIMARY_WORKFLOW_TABS: WorkflowTabDefinition[] = [
+  {
+    id: 'profile',
+    label: 'Overview & Profile',
+    icon: Building2,
+    defaultSubTab: 'overview',
+    subTabs: [
+      { id: 'overview', label: 'Company Overview' },
+      { id: 'contacts', label: 'Contacts' },
+      { id: 'team', label: 'Account Team' },
+    ],
+  },
+  {
+    id: 'intelligence',
+    label: 'Intelligence & Discovery',
+    icon: BrainCircuit,
+    defaultSubTab: 'discovery',
+    subTabs: [
+      { id: 'discovery', label: 'Discovery Workspace' },
+      { id: 'intelligence', label: 'AI Screening & Insights' },
+      { id: 'pre-meeting brief', label: 'Pre-Meeting Brief' },
+    ],
+  },
+  {
+    id: 'commercial',
+    label: 'Deals & Commercial',
+    icon: DollarSign,
+    defaultSubTab: 'revenue',
+    subTabs: [
+      { id: 'revenue', label: 'Deal Health & Revenue' },
+      { id: 'orders', label: 'Orders & Commercial SOW' },
+    ],
+  },
+  {
+    id: 'delivery',
+    label: 'Execution & Delivery',
+    icon: ClipboardList,
+    defaultSubTab: 'professional services',
+    subTabs: [
+      { id: 'professional services', label: 'Professional Services (PSA)' },
+      { id: 'projects', label: 'Project Plans & Roadmap' },
+    ],
+  },
+  {
+    id: 'timeline',
+    label: 'Timeline & History',
+    icon: Activity,
+    defaultSubTab: 'activities',
+    subTabs: [
+      { id: 'activities', label: 'Activities & Meetings' },
+      { id: 'transcripts', label: 'Meeting Transcripts' },
+      { id: 'customer journey', label: 'Customer Journey' },
+    ],
+  },
+];
+
+const TAB_TO_PRIMARY_MAP: Record<string, { primary: PrimaryTabKey; subTab: string }> = {
+  // Profile
+  overview: { primary: 'profile', subTab: 'overview' },
+  contacts: { primary: 'profile', subTab: 'contacts' },
+  team: { primary: 'profile', subTab: 'team' },
+
+  // Intelligence
+  discovery: { primary: 'intelligence', subTab: 'discovery' },
+  intelligence: { primary: 'intelligence', subTab: 'intelligence' },
+  'pre-meeting brief': { primary: 'intelligence', subTab: 'pre-meeting brief' },
+  brief: { primary: 'intelligence', subTab: 'pre-meeting brief' },
+
+  // Commercial / Deals
+  revenue: { primary: 'commercial', subTab: 'revenue' },
+  orders: { primary: 'commercial', subTab: 'orders' },
+  commercial: { primary: 'commercial', subTab: 'revenue' },
+
+  // Delivery / Execution
+  'professional services': { primary: 'delivery', subTab: 'professional services' },
+  projects: { primary: 'delivery', subTab: 'projects' },
+  delivery: { primary: 'delivery', subTab: 'professional services' },
+
+  // Timeline / History
+  activities: { primary: 'timeline', subTab: 'activities' },
+  transcripts: { primary: 'timeline', subTab: 'transcripts' },
+  'customer journey': { primary: 'timeline', subTab: 'customer journey' },
+  meetings: { primary: 'timeline', subTab: 'activities' },
+  timeline: { primary: 'timeline', subTab: 'activities' },
+};
+
 const LEAD_TAB_GROUPS: { label: string; tabs: string[] }[] = [
   { label: 'Profile', tabs: ['Overview', 'Contacts', 'Team'] },
   { label: 'AI Intelligence', tabs: ['Discovery', 'Intelligence', 'Pre-Meeting Brief', 'Revenue'] },
@@ -1747,173 +1844,234 @@ export default function LeadDetailPage() {
                {larkBaseFeedback.msg}
              </span>
           )}
+
+          {/* Primary Action: Log Activity */}
           <Button
-            variant="outline"
             size="sm"
-            className="bg-[var(--status-success)]/10 text-[var(--status-success)] border-[var(--status-success)]/30 hover:bg-[var(--status-success)] hover:text-white"
-            onClick={() => setIsCheckinModalOpen(true)}
-            title="Field Sales Offline-Ready GPS Check-in"
+            onClick={() => openActivityModal()}
+            className="shadow-xs font-medium"
           >
-            <MapPin className="mr-2 h-4 w-4" />
-            Field Check-in
+            <Plus className="mr-1.5 h-4 w-4" />
+            Log Activity
           </Button>
+
+          {/* AI Sales Copilot */}
           <Button
             variant="outline"
             size="sm"
-            className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-600 hover:text-white"
+            className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-600 hover:text-white transition-all shadow-xs"
             onClick={() => setIsCopilotOpen(true)}
             title="In-Context Sales Copilot & Strategic AI Assistant"
           >
-            <Sparkles className="mr-2 h-4 w-4" />
-            AI Sales Copilot
+            <Sparkles className="mr-1.5 h-4 w-4" />
+            AI Copilot
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-border hover:bg-muted"
-            onClick={() => setIsCadenceModalOpen(true)}
-            title="Daftarkan lead ke Automated Sales Cadence Sequence"
-          >
-            <GitBranch className="mr-2 h-4 w-4 text-brand" />
-            Cadence
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white"
-            onClick={() => setIsMergeModalOpen(true)}
-            title="Periksa kecocokan duplikat dan gabungkan lead ini"
-          >
-            <GitMerge className="mr-2 h-4 w-4" />
-            Deduplikasi & Merge
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)] border-[var(--brand)]/30 hover:bg-[var(--brand)] hover:text-white"
-            onClick={() => runIntelligenceMutation.mutate()}
-            disabled={runIntelligenceMutation.isPending}
-            title="Refreshes ICP match, conversion prediction, and prescriptions on the Revenue tab. This is separate from AI Screening (lead score/qualification/BANTC)."
-          >
-            {runIntelligenceMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
-            Run Revenue Intelligence
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => syncToLarkBaseMutation.mutate()}
-            disabled={syncToLarkBaseMutation.isPending}
-          >
-            {syncToLarkBaseMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Sync to Lark Base
-          </Button>
+
+          {/* Consolidated More Actions Dropdown */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="border-border text-foreground hover:bg-muted shadow-xs">
+                <MoreHorizontal className="h-4 w-4 mr-1.5 text-muted-foreground" />
+                More Actions
+                <ChevronDown className="h-3.5 w-3.5 ml-1 text-muted-foreground" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-1.5 space-y-0.5">
+              <button
+                type="button"
+                onClick={() => setIsCheckinModalOpen(true)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted text-left transition-colors"
+              >
+                <MapPin className="h-4 w-4 text-emerald-500 shrink-0" />
+                <span>Field Sales Check-in</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCadenceModalOpen(true)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted text-left transition-colors"
+              >
+                <GitBranch className="h-4 w-4 text-[var(--brand)] shrink-0" />
+                <span>Automated Cadence</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsMergeModalOpen(true)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted text-left transition-colors"
+              >
+                <GitMerge className="h-4 w-4 text-indigo-500 shrink-0" />
+                <span>Deduplikasi & Merge</span>
+              </button>
+              <div className="h-px bg-border my-1" />
+              <button
+                type="button"
+                disabled={runIntelligenceMutation.isPending}
+                onClick={() => runIntelligenceMutation.mutate()}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted text-left transition-colors disabled:opacity-50"
+              >
+                {runIntelligenceMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-[var(--brand)] shrink-0" />
+                ) : (
+                  <BrainCircuit className="h-4 w-4 text-[var(--brand)] shrink-0" />
+                )}
+                <span>Run Revenue Intel</span>
+              </button>
+              <button
+                type="button"
+                disabled={syncToLarkBaseMutation.isPending}
+                onClick={() => syncToLarkBaseMutation.mutate()}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted text-left transition-colors disabled:opacity-50"
+              >
+                {syncToLarkBaseMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-500 shrink-0" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 text-blue-500 shrink-0" />
+                )}
+                <span>Sync to Lark Base</span>
+              </button>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
-      {/* Quick Stats Row */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="rounded-lg border border-border bg-card p-4 flex flex-col justify-between">
+      {/* Quick Stats Row (Consolidated & Non-Redundant) */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {/* Card 1: AI Score & Qualification */}
+        <div className="rounded-xl border border-border/70 bg-card p-3.5 flex flex-col justify-between shadow-xs">
           <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">SCORE</span>
-              <Zap className="h-4 w-4 text-yellow-500" />
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">AI SCORE & STATUS</span>
+              <Zap className="h-3.5 w-3.5 text-yellow-500" />
             </div>
-            <div className="text-2xl font-bold">{latestScore?.score ?? '—'}</div>
-            <div className="mt-2 flex items-center gap-2">
-              <Badge variant={gradeVariant(latestScore?.grade)}>{latestScore?.grade ?? 'No grade'}</Badge>
-              {latestScore?.calculated_at ? (
-                <span className="text-xs text-muted-foreground">
-                  {new Date(latestScore.calculated_at).toLocaleDateString()}
-                </span>
-              ) : null}
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold font-mono tracking-tight">{latestScore?.score ?? '—'}</span>
+              <Badge variant={gradeVariant(latestScore?.grade)} className="text-[10px] h-4 px-1.5 font-bold uppercase">{latestScore?.grade ?? 'No grade'}</Badge>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{leadData.ai_explanation || 'No scoring explanation yet.'}</p>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-border bg-card p-4 flex flex-col justify-between">
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ELIGIBILITY & QUALIFICATION</span>
-              {leadData.qualification_status === 'eligible' ? (
-                <CheckCircle className="h-4 w-4 text-[var(--status-success)]" />
-              ) : leadData.qualification_status === 'potential' ? (
-                <Sparkles className="h-4 w-4 text-[var(--brand)]" />
-              ) : leadData.qualification_status === 'not_eligible' || leadData.qualification_status === 'disqualified' ? (
-                <XCircle className="h-4 w-4 text-[var(--status-danger)]" />
-              ) : (
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              )}
-            </div>
-            <div className="text-2xl font-bold capitalize flex items-center gap-2">
-              {formatQualificationStatus(leadData.qualification_status)}
-            </div>
-            <div className="mt-2 flex items-center gap-2 flex-wrap">
-              <Badge variant={qualificationVariant(leadData.qualification_status)}>
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              <Badge variant={qualificationVariant(leadData.qualification_status)} className="text-[10px] py-0 px-1.5 font-medium">
                 {leadData.qualification_status === 'eligible'
                   ? 'Qualified (SQL)'
                   : leadData.qualification_status === 'potential'
-                    ? 'Potential Prospect'
+                    ? 'Potential'
                     : leadData.qualification_status === 'not_eligible' || leadData.qualification_status === 'disqualified'
                       ? 'Not Eligible'
-                      : 'Awaiting Assessment'}
-              </Badge>
-              <Badge variant="outline" className="text-[11px] font-normal border-border/70 bg-muted/30">
-                Funnel: {currentStageName}
+                      : 'Unassessed'}
               </Badge>
               {latestQual?.business_type && (
-                <span className="text-[11px] text-muted-foreground font-medium uppercase bg-muted/50 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] text-muted-foreground uppercase bg-muted/60 px-1.5 py-0 rounded font-mono">
                   {latestQual.business_type}
                 </span>
               )}
             </div>
-            <p className="mt-2 text-xs text-muted-foreground line-clamp-2" title={latestQual?.qualification_reason || undefined}>
-              {latestQual?.qualification_reason || (leadData.qualification_status && leadData.qualification_status !== 'pending' ? `Lead diklasifikasikan sebagai ${formatQualificationStatus(leadData.qualification_status)}.` : 'Belum dilakukan asesmen kualifikasi.')}
-            </p>
           </div>
-        </div>
-
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">ACTIVITIES</span>
-            <MessageSquare className="h-4 w-4 text-[var(--status-info)]" />
-          </div>
-          <div className="text-2xl font-bold">{progressData.total_activities ?? 0}</div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {progressData.days_since_last ? `${progressData.days_since_last}d ago` : 'Never'}
+          <p className="mt-2 text-[11px] text-muted-foreground line-clamp-1" title={leadData.ai_explanation || latestQual?.qualification_reason || undefined}>
+            {leadData.ai_explanation || latestQual?.qualification_reason || 'Belum dilakukan asesmen kualifikasi.'}
           </p>
         </div>
 
-        <div className={`rounded-lg border bg-card p-4 ${progressData.next_follow_up?.is_overdue ? 'border-[var(--status-danger)]/40' : 'border-border'}`}>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">NEXT FOLLOW-UP</span>
-            <Calendar className={`h-4 w-4 ${progressData.next_follow_up?.is_overdue ? 'text-[var(--status-danger)] animate-pulse' : progressData.next_follow_up ? 'text-[var(--status-warning)]' : 'text-muted-foreground'}`} />
-          </div>
-          <div className="flex items-center gap-2">
-            <div className={`text-sm font-bold ${progressData.next_follow_up?.is_overdue ? 'text-[var(--status-danger)]' : ''}`}>
-              {progressData.next_follow_up?.due_date
-                ? new Date(progressData.next_follow_up.due_date).toLocaleDateString()
-                : 'Not set'}
+        {/* Card 2: Deal Pipeline & Commercial Value (Replaces redundant qualification card) */}
+        <div className="rounded-xl border border-border/70 bg-card p-3.5 flex flex-col justify-between shadow-xs">
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">DEAL PIPELINE</span>
+              <DollarSign className="h-3.5 w-3.5 text-[var(--status-success)]" />
             </div>
-            {progressData.next_follow_up?.is_overdue && (
-              <Badge variant="danger" className="text-[10px] uppercase h-5 px-1.5 font-bold">Overdue</Badge>
-            )}
+            <div className="text-xl font-bold font-mono tracking-tight text-foreground">
+              {leadData.estimated_closing_amount != null
+                ? formatCurrency(Number(leadData.estimated_closing_amount))
+                : 'Rp —'}
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal border-border/80 bg-muted/30">
+                Stage: {currentStageName}
+              </Badge>
+              {leadData.target_closing_date && (
+                <span className="text-[10px] text-muted-foreground">
+                  Target: {new Date(leadData.target_closing_date).toLocaleDateString()}
+                </span>
+              )}
+            </div>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground truncate" title={progressData.next_follow_up?.purpose || 'N/A'}>
-            {progressData.next_follow_up?.purpose || 'N/A'}
+          <p className="mt-2 text-[11px] text-muted-foreground line-clamp-1">
+            {leadData.realized_closing_amount != null && Number(leadData.realized_closing_amount) > 0
+              ? `Realized: ${formatCurrency(Number(leadData.realized_closing_amount))}`
+              : 'Estimasi potensi nilai komersial'}
+          </p>
+        </div>
+
+        {/* Card 3: Activities & Engagement */}
+        <div className="rounded-xl border border-border/70 bg-card p-3.5 flex flex-col justify-between shadow-xs">
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">ACTIVITIES</span>
+              <MessageSquare className="h-3.5 w-3.5 text-[var(--status-info)]" />
+            </div>
+            <div className="text-2xl font-bold font-mono tracking-tight">{progressData.total_activities ?? 0}</div>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">
+                Last: {progressData.days_since_last ? `${progressData.days_since_last}d ago` : 'Never'}
+              </span>
+            </div>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground line-clamp-1">
+            {meetingActivities.length > 0 ? `${meetingActivities.length} meetings tercatat` : 'Belum ada jadwal meeting'}
+          </p>
+        </div>
+
+        {/* Card 4: Next Follow-Up */}
+        <div className={`rounded-xl border p-3.5 flex flex-col justify-between shadow-xs ${progressData.next_follow_up?.is_overdue ? 'border-[var(--status-danger)]/40 bg-[color-mix(in_oklch,var(--status-danger)_5%,transparent)]' : 'border-border/70 bg-card'}`}>
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">NEXT FOLLOW-UP</span>
+              <Calendar className={`h-3.5 w-3.5 ${progressData.next_follow_up?.is_overdue ? 'text-[var(--status-danger)] animate-pulse' : progressData.next_follow_up ? 'text-[var(--status-warning)]' : 'text-muted-foreground'}`} />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className={`text-base font-bold ${progressData.next_follow_up?.is_overdue ? 'text-[var(--status-danger)]' : 'text-foreground'}`}>
+                {progressData.next_follow_up?.due_date
+                  ? new Date(progressData.next_follow_up.due_date).toLocaleDateString()
+                  : 'Not set'}
+              </span>
+              {progressData.next_follow_up?.is_overdue && (
+                <Badge variant="danger" className="text-[9px] uppercase h-4 px-1 font-bold">Overdue</Badge>
+              )}
+            </div>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground truncate" title={progressData.next_follow_up?.purpose || 'N/A'}>
+            {progressData.next_follow_up?.purpose || 'Tidak ada follow-up terjadwal'}
           </p>
         </div>
       </div>
- 
-      {/* ── SALES STAGE FLOW ── */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-4 shadow-xs">
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <span className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">Sales Stage Flow</span>
+
+      {/* ── SALES STAGE FLOW (Compact Stepper) ── */}
+      <div className="rounded-xl border border-border/70 bg-card p-3 shadow-xs">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
+            <TrendingUp className="h-3.5 w-3.5 text-primary" />
+            Sales Stage Flow
+          </span>
+          {(() => {
+            const currentStageId = leadData.funnelStage?.id || leadData.funnel_stage_id || leadData.current_funnel_stage?.id;
+            const currentStageIndex = funnelStages.findIndex((s: any) => s.id === currentStageId);
+            const nextStage = currentStageIndex !== -1 && currentStageIndex < funnelStages.length - 1 
+              ? funnelStages[currentStageIndex + 1] 
+              : null;
+
+            if (!nextStage) return null;
+
+            return (
+              <Button 
+                size="xs" 
+                onClick={() => openLogActivityWithStage(nextStage.id)}
+                className="h-6 text-[11px] font-medium shadow-xs"
+              >
+                Complete Step →
+              </Button>
+            );
+          })()}
         </div>
- 
+
         {/* Chevron Progress Flow */}
-        <div className="w-full overflow-x-auto pb-2 scrollbar-thin">
-          <div className="flex items-center min-w-[700px] md:min-w-0">
+        <div className="w-full overflow-x-auto pb-0.5 scrollbar-none">
+          <div className="flex items-center min-w-[600px] md:min-w-0">
             {funnelStages.map((stage: any, index: number) => {
               const currentStageId = leadData.funnelStage?.id || leadData.funnel_stage_id || leadData.current_funnel_stage?.id;
               const currentStageIndex = funnelStages.findIndex((s: any) => s.id === currentStageId);
@@ -1924,32 +2082,27 @@ export default function LeadDetailPage() {
               } else if (index === currentStageIndex) {
                 status = 'active';
               }
- 
-              // Color dot
+
               let dotBg = 'bg-slate-300 dark:bg-slate-700';
               if (status === 'done') dotBg = 'bg-emerald-500';
               if (status === 'active') dotBg = 'bg-orange-500 animate-pulse';
- 
-              // Clip path polygon calculation
+
               const isFirst = index === 0;
               const isLast = index === funnelStages.length - 1;
-              let clipPath = 'polygon(0% 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 0% 100%, 10px 50%)';
+              let clipPath = 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%, 8px 50%)';
               if (isFirst) {
-                clipPath = 'polygon(0% 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 0% 100%)';
+                clipPath = 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)';
               } else if (isLast) {
-                clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 10px 50%)';
+                clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 8px 50%)';
               }
- 
-              // Card styling classes
-              let bgClass = 'bg-muted/50 hover:bg-muted text-muted-foreground';
-              let borderClass = 'border-transparent';
-              
+
+              let bgClass = 'bg-muted/40 hover:bg-muted text-muted-foreground';
               if (status === 'done') {
                 bgClass = 'bg-[var(--status-success)]/10 hover:bg-[var(--status-success)]/15 text-[var(--status-success)]';
               } else if (status === 'active') {
-                bgClass = 'bg-primary/10 text-primary ring-2 ring-primary ring-inset';
+                bgClass = 'bg-primary/10 text-primary ring-1 ring-primary ring-inset font-semibold';
               }
- 
+
               return (
                 <div 
                   key={stage.id}
@@ -1958,15 +2111,15 @@ export default function LeadDetailPage() {
                       openLogActivityWithStage(stage.id);
                     }
                   }}
-                  className={`flex-1 relative h-10 flex items-center justify-center font-medium text-xs select-none transition-all cursor-pointer ${bgClass} ${borderClass} px-4 py-2`}
+                  className={`flex-1 relative h-7 flex items-center justify-center text-[11px] select-none transition-all cursor-pointer ${bgClass} px-3 py-1`}
                   style={{ 
                     clipPath, 
-                    marginLeft: isFirst ? '0px' : '-8px',
+                    marginLeft: isFirst ? '0px' : '-6px',
                     zIndex: funnelStages.length - index 
                   }}
                 >
-                  <div className="flex items-center gap-2 pl-2">
-                    <span className={`h-2.5 w-2.5 rounded-full ${dotBg}`} />
+                  <div className="flex items-center gap-1.5 pl-1.5">
+                    <span className={`h-2 w-2 rounded-full shrink-0 ${dotBg}`} />
                     <span className="truncate">{stage.name}</span>
                   </div>
                 </div>
@@ -1974,48 +2127,20 @@ export default function LeadDetailPage() {
             })}
           </div>
         </div>
- 
-        {/* Complete Step button (moves to the next stage in sequence) */}
-        {(() => {
-          const currentStageId = leadData.funnelStage?.id || leadData.funnel_stage_id || leadData.current_funnel_stage?.id;
-          const currentStageIndex = funnelStages.findIndex((s: any) => s.id === currentStageId);
-          const nextStage = currentStageIndex !== -1 && currentStageIndex < funnelStages.length - 1 
-            ? funnelStages[currentStageIndex + 1] 
-            : null;
-
-          if (!nextStage) return null;
-
-          return (
-            <div className="flex items-center justify-end pt-2 border-t border-border/50">
-              <Button 
-                size="sm" 
-                onClick={() => openLogActivityWithStage(nextStage.id)}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-xs transition-all"
-              >
-                Complete Step
-              </Button>
-            </div>
-          );
-        })()}
       </div>
 
       {!['eligible', 'potential'].includes(leadData.qualification_status ?? '') && canMarkEligible ? (
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-[var(--brand)]" />
-                <h2 className="font-semibold">Eligibility Override</h2>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Current qualification is <b>{formatQualificationStatus(leadData.qualification_status)}</b>, which keeps this lead out of the pipeline.{' '}
-                {isSuperAdmin ? 'As a super admin, y' : "As this lead owner's direct manager, y"}ou can mark it Eligible directly.
-              </p>
-            </div>
-            <Button onClick={() => markEligibleMutation.mutate()} disabled={markEligibleMutation.isPending}>
-              {markEligibleMutation.isPending ? 'Marking...' : 'Mark as Eligible'}
-            </Button>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-[var(--brand)] shrink-0" />
+            <p className="text-muted-foreground">
+              Current qualification is <b className="text-foreground">{formatQualificationStatus(leadData.qualification_status)}</b>.
+              {isSuperAdmin ? ' As super admin, you can mark it Eligible directly.' : " As manager, you can mark it Eligible directly."}
+            </p>
           </div>
+          <Button size="xs" onClick={() => markEligibleMutation.mutate()} disabled={markEligibleMutation.isPending}>
+            {markEligibleMutation.isPending ? 'Marking...' : 'Mark as Eligible'}
+          </Button>
         </div>
       ) : null}
 
@@ -2028,47 +2153,84 @@ export default function LeadDetailPage() {
         }}
       />
 
-      {/* Tabs. Twelve of them in one flat row read as an undifferentiated list,
-          so they are clustered by what the reader came to do. The labels are
-          unchanged — activeTab is still the lowercased label, which ?tab= links
-          and setActiveTab() calls elsewhere depend on. */}
-      <div className="border-b border-border">
-        <div className="flex items-stretch overflow-x-auto scroll-smooth">
-          {LEAD_TAB_GROUPS.map((group, groupIndex) => (
-            <div
-              key={group.label}
-              className={groupIndex > 0 ? 'ml-3 border-l border-border/60 pl-3' : undefined}
-            >
-              <span className="block px-4 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                {group.label}
-              </span>
-              <div className="flex">
-                {group.tabs.map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={(e) => {
-                      setActiveTab(tab.toLowerCase());
-                      e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                    }}
-                    className={`whitespace-nowrap border-b-2 px-4 pb-3 pt-1.5 text-sm font-medium transition-all duration-200 ${
-                      activeTab === tab.toLowerCase()
-                        ? 'border-[var(--brand)] text-foreground font-semibold'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {tab}
-                    {tab === 'Contacts' && contacts.length > 0 && (
-                      <span className="ml-1.5 rounded-full bg-[color-mix(in_oklch,var(--brand)_20%,transparent)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--brand)]">
-                        {contacts.length}
-                      </span>
-                    )}
-                  </button>
-                ))}
+      {/* ── CONSOLIDATED 5 PRIMARY WORKFLOW TABS & SUB-TAB PILLS (UI-SIMPLIFY-001) ── */}
+      {(() => {
+        const normalizedTab = activeTab.toLowerCase();
+        const resolvedTab = TAB_TO_PRIMARY_MAP[normalizedTab] ?? { primary: 'profile', subTab: 'overview' };
+        const activePrimaryTab = resolvedTab.primary;
+        const currentPrimaryDef = PRIMARY_WORKFLOW_TABS.find((t) => t.id === activePrimaryTab) ?? PRIMARY_WORKFLOW_TABS[0];
+
+        return (
+          <div className="space-y-2.5">
+            {/* Primary Workflow Tabs Bar */}
+            <div className="rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xs p-1 shadow-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1">
+                {PRIMARY_WORKFLOW_TABS.map((pt) => {
+                  const Icon = pt.icon;
+                  const isActive = activePrimaryTab === pt.id;
+                  return (
+                    <button
+                      key={pt.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(pt.defaultSubTab);
+                      }}
+                      className={cn(
+                        "flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 select-none",
+                        isActive
+                          ? "bg-background text-foreground shadow-xs border border-border/90 font-bold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                      )}
+                    >
+                      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-[var(--brand)]" : "text-muted-foreground")} />
+                      <span className="truncate">{pt.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+
+            {/* Sub-Tab Navigation Pills */}
+            <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-muted/40 border border-border/50">
+                {currentPrimaryDef.subTabs.map((st) => {
+                  const isSubActive = normalizedTab === st.id;
+                  const badgeCount =
+                    st.id === 'contacts' ? contacts.length :
+                    st.id === 'transcripts' ? transcriptsList.length :
+                    st.id === 'activities' ? (progressData.total_activities ?? 0) : null;
+
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => setActiveTab(st.id)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 select-none",
+                        isSubActive
+                          ? "bg-background text-foreground shadow-xs border border-border/70 font-semibold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <span>{st.label}</span>
+                      {badgeCount !== null && badgeCount > 0 && (
+                        <span className={cn(
+                          "rounded-full px-1.5 py-0.2 text-[10px] font-bold font-mono",
+                          isSubActive
+                            ? "bg-[color-mix(in_oklch,var(--brand)_20%,transparent)] text-[var(--brand)]"
+                            : "bg-muted text-muted-foreground"
+                        )}>
+                          {badgeCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── OVERVIEW TAB ── */}
       {activeTab === 'overview' && (
