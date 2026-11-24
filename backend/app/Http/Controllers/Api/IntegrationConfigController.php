@@ -33,22 +33,52 @@ class IntegrationConfigController extends Controller
                     $query->orWhere('tenant_id', $tenantId);
                 }
             })
+            ->orderByRaw('tenant_id is null')
             ->orderBy('category')
             ->orderBy('key')
-            ->get()
-            ->map(function ($config) {
-                return [
-                    'id' => $config->id,
-                    'category' => $config->category,
-                    'key' => $config->key,
-                    'value' => $config->safe_value,
-                    'is_secret' => $config->is_secret,
-                    'is_active' => $config->is_active,
-                    'value_type' => $config->value_type,
-                ];
-            });
+            ->get();
 
-        $grouped = $configs->groupBy('category');
+        // Deduplicate so tenant-specific row overrides global row for each category+key
+        $uniqueConfigs = $configs->unique(fn ($c) => ($c->category ?? '') . ':' . $c->key)->map(function ($config) {
+            return [
+                'id' => $config->id,
+                'category' => $config->category,
+                'key' => $config->key,
+                'value' => $config->safe_value,
+                'is_secret' => $config->is_secret,
+                'is_active' => $config->is_active,
+                'value_type' => $config->value_type,
+            ];
+        });
+
+        $grouped = $uniqueConfigs->groupBy('category');
+
+        // Bridge shared web research keys between maps and search_engines categories
+        $sharedSearchKeys = ['TAVILY_API_KEY', 'SERPER_API_KEY', 'BRAVE_SEARCH_API_KEY', 'TAVILY_ENABLED', 'SERPER_ENABLED'];
+        foreach ($sharedSearchKeys as $sharedKey) {
+            $fromSearch = $uniqueConfigs->first(fn ($c) => $c['key'] === $sharedKey && $c['category'] === 'search_engines' && !empty($c['value']));
+            $fromMaps = $uniqueConfigs->first(fn ($c) => $c['key'] === $sharedKey && $c['category'] === 'maps' && !empty($c['value']));
+            $activeItem = $fromSearch ?? $fromMaps;
+
+            if ($activeItem) {
+                foreach (['search_engines', 'maps'] as $cat) {
+                    if (!$grouped->has($cat)) {
+                        $grouped->put($cat, collect([]));
+                    }
+                    $items = $grouped->get($cat);
+                    $existingIndex = $items->search(fn ($item) => $item['key'] === $sharedKey);
+                    $bridgedItem = array_merge($activeItem, ['category' => $cat]);
+                    if ($existingIndex !== false) {
+                        if (empty($items[$existingIndex]['value'])) {
+                            $items[$existingIndex] = $bridgedItem;
+                        }
+                    } else {
+                        $items->push($bridgedItem);
+                    }
+                    $grouped->put($cat, $items);
+                }
+            }
+        }
 
         return response()->json(['data' => $grouped]);
     }

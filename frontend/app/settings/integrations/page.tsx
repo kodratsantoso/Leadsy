@@ -738,13 +738,22 @@ function IntegrationsSettingsContent() {
       .then(json => {
         if (!json?.data) return;
 
-        if (json.data.maps) {
+        if (json.data.maps || json.data.search_engines) {
           const next = { ...DEFAULT_MAPS };
-          (json.data.maps as IntegrationConfig[]).forEach((c) => {
-            next[c.key] = {
-              ...c,
-              value: c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value),
-            };
+          const combined = [
+            ...((json.data.maps as IntegrationConfig[]) || []),
+            ...((json.data.search_engines as IntegrationConfig[]) || []),
+          ];
+          combined.forEach((c) => {
+            if (next[c.key]) {
+              const val = c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value);
+              if (!next[c.key].value || val) {
+                next[c.key] = {
+                  ...c,
+                  value: val,
+                };
+              }
+            }
           });
           setMapsConfig(next);
         }

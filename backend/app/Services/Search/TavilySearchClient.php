@@ -52,6 +52,7 @@ class TavilySearchClient implements WebSearchProvider
                 ->withToken($apiKey)
                 ->acceptJson()
                 ->post(self::ENDPOINT, [
+                    'api_key' => $apiKey,
                     'query' => $query,
                     'max_results' => max(1, min(10, $limit)),
                     'search_depth' => 'basic',

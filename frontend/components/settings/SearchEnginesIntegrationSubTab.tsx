@@ -129,12 +129,15 @@ export function SearchEnginesIntegrationSubTab() {
         const allItems = Object.values(rawMap).flat();
 
         const findVal = (key: string, def = ""): string => {
-          const item = allItems.find((i) => i.key === key);
-          return item ? item.value : def;
+          const matching = allItems.filter((i) => i.key === key);
+          const withVal = matching.find((i) => i.value && i.value.trim() !== "");
+          return withVal ? withVal.value : (matching[0]?.value ?? def);
         };
 
         const findBool = (key: string, def = false): boolean => {
-          const item = allItems.find((i) => i.key === key);
+          const matching = allItems.filter((i) => i.key === key);
+          const withVal = matching.find((i) => i.value !== undefined && i.value !== null && i.value !== "");
+          const item = withVal || matching[0];
           if (!item) return def;
           return item.value === "true" || item.value === "1" || (item.value as unknown) === true;
         };
@@ -464,7 +467,14 @@ export function SearchEnginesIntegrationSubTab() {
                   type={visibleSecrets.SERPER_API_KEY ? "text" : "password"}
                   placeholder="Paste Serper API Key (misal: 64b8a7...)"
                   value={config.SERPER_API_KEY}
-                  onChange={(e) => setConfig({ ...config, SERPER_API_KEY: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setConfig({
+                      ...config,
+                      SERPER_API_KEY: val,
+                      SERPER_ENABLED: val.trim().length > 0 ? true : config.SERPER_ENABLED,
+                    });
+                  }}
                   className="pr-10"
                 />
                 <button
@@ -756,7 +766,14 @@ export function SearchEnginesIntegrationSubTab() {
                   type={visibleSecrets.TAVILY_API_KEY ? "text" : "password"}
                   placeholder="tvly-..."
                   value={config.TAVILY_API_KEY}
-                  onChange={(e) => setConfig({ ...config, TAVILY_API_KEY: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setConfig({
+                      ...config,
+                      TAVILY_API_KEY: val,
+                      TAVILY_ENABLED: val.trim().length > 0 ? true : config.TAVILY_ENABLED,
+                    });
+                  }}
                   className="pr-10"
                 />
                 <button
