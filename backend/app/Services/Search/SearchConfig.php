@@ -41,4 +41,55 @@ class SearchConfig
 
         return null;
     }
+
+    /**
+     * Check whether a provider toggle (e.g. SERPER_ENABLED, TAVILY_ENABLED) allows use.
+     *
+     * Returns $defaultWhenUnset (true) when the toggle has never been stored, or when one
+     * of $credentialKeys is supplied directly via environment variable override.
+     *
+     * @param  list<string>  $enableKeys
+     * @param  list<string>  $credentialKeys
+     */
+    public function isEnabled(array $enableKeys, ?int $tenantId = null, array $credentialKeys = [], bool $defaultWhenUnset = true): bool
+    {
+        foreach ($enableKeys as $enableKey) {
+            $envToggle = env($enableKey);
+            if ($envToggle !== null && $envToggle !== '') {
+                return filter_var($envToggle, FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        foreach ($credentialKeys as $credKey) {
+            $envCred = env($credKey);
+            if (is_string($envCred) && trim($envCred) !== '') {
+                return true;
+            }
+        }
+
+        foreach ($enableKeys as $enableKey) {
+            $record = IntegrationConfig::query()
+                ->where('key', $enableKey)
+                ->where('is_active', true)
+                ->where(function ($query) use ($tenantId) {
+                    $query->whereNull('tenant_id');
+                    if ($tenantId !== null) {
+                        $query->orWhere('tenant_id', $tenantId);
+                    }
+                })
+                ->orderByRaw('tenant_id is null')
+                ->latest()
+                ->first();
+
+            if ($record !== null && $record->value !== null && $record->value !== '') {
+                if (is_bool($record->value)) {
+                    return $record->value;
+                }
+
+                return in_array(strtolower(trim((string) $record->value)), ['1', 'true', 'yes', 'on'], true);
+            }
+        }
+
+        return $defaultWhenUnset;
+    }
 }

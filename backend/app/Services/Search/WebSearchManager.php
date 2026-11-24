@@ -16,7 +16,13 @@ class WebSearchManager
 {
     public const ORDER_KEY = 'WEB_RESEARCH_PROVIDER_ORDER';
 
+    public const UNIFIED_PRIORITY_KEY = 'SEARCH_ENGINE_PRIORITY';
+
     public const DEFAULT_ORDER = ['tavily', 'google', 'serper', 'brave', 'yahoo'];
+
+    private const UNIFIED_KEY_ALIASES = [
+        'google_cse' => 'google',
+    ];
 
     /** @var array<string, WebSearchProvider> */
     private array $providers;
@@ -42,10 +48,7 @@ class WebSearchManager
      */
     public function configuredProviders(?int $tenantId = null): array
     {
-        $raw = $this->config->value([self::ORDER_KEY], $tenantId);
-        $order = $raw
-            ? array_values(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', $raw))))
-            : self::DEFAULT_ORDER;
+        $order = $this->resolveProviderOrder($tenantId);
 
         $ordered = [];
         foreach ($order as $key) {
@@ -56,6 +59,60 @@ class WebSearchManager
         }
 
         return $ordered;
+    }
+
+    /**
+     * Resolve provider order:
+     * 1. Explicit WEB_RESEARCH_PROVIDER_ORDER override (comma-separated, exact list).
+     * 2. Unified SEARCH_ENGINE_PRIORITY from the "Search & PIC Discovery" tab (JSON array),
+     *    translating google_cse → google and appending brave + yahoo as automatic fallbacks.
+     * 3. Default order.
+     *
+     * @return list<string>
+     */
+    private function resolveProviderOrder(?int $tenantId): array
+    {
+        $explicitOrder = $this->config->value([self::ORDER_KEY], $tenantId);
+        if ($explicitOrder !== null) {
+            return array_values(array_filter(array_map(
+                fn ($v) => strtolower(trim($v)),
+                explode(',', $explicitOrder)
+            )));
+        }
+
+        $unifiedRaw = $this->config->value([self::UNIFIED_PRIORITY_KEY], $tenantId);
+        if ($unifiedRaw !== null) {
+            $decoded = json_decode($unifiedRaw, true);
+            if (is_array($decoded) && $decoded !== []) {
+                $mapped = [];
+                foreach ($decoded as $entry) {
+                    if (! is_string($entry)) {
+                        continue;
+                    }
+                    $normalized = strtolower(trim($entry));
+                    $normalized = self::UNIFIED_KEY_ALIASES[$normalized] ?? $normalized;
+                    if (isset($this->providers[$normalized]) && ! in_array($normalized, $mapped, true)) {
+                        $mapped[] = $normalized;
+                    }
+                }
+
+                foreach (['brave', 'yahoo'] as $fallback) {
+                    if (! in_array($fallback, $mapped, true)) {
+                        $mapped[] = $fallback;
+                    }
+                }
+
+                foreach (self::DEFAULT_ORDER as $defaultKey) {
+                    if (! in_array($defaultKey, $mapped, true)) {
+                        $mapped[] = $defaultKey;
+                    }
+                }
+
+                return $mapped;
+            }
+        }
+
+        return self::DEFAULT_ORDER;
     }
 
     /**
@@ -74,7 +131,7 @@ class WebSearchManager
                 'results' => [],
                 'provider' => null,
                 'failed' => [],
-                'error' => 'No web search provider is configured. Add a Tavily, Google Custom Search, Serper or Brave key in Settings → Integration Setting → Google → Web Research Providers.',
+                'error' => 'No web search provider is configured. Add a Serper, Tavily, Google Custom Search, or Brave key in Settings → Integration Settings → Search & PIC Discovery.',
             ];
         }
 

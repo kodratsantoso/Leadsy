@@ -27,7 +27,8 @@ class SerperSearchClient implements WebSearchProvider
 
     public function isConfigured(?int $tenantId = null): bool
     {
-        return $this->config->value(self::KEYS, $tenantId) !== null;
+        return $this->config->isEnabled(['SERPER_ENABLED'], $tenantId, self::KEYS)
+            && $this->config->value(self::KEYS, $tenantId) !== null;
     }
 
     public function search(string $query, ?int $tenantId = null, int $limit = 5): array

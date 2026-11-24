@@ -20,6 +20,7 @@ import { describeThrown } from "@/lib/apiError";
 import { EmailIntegrationSubTab } from "@/components/settings/EmailIntegrationSubTab";
 import { MekariSignIntegrationSubTab } from "@/components/settings/MekariSignIntegrationSubTab";
 import { SearchEnginesIntegrationSubTab } from "@/components/settings/SearchEnginesIntegrationSubTab";
+import { WebhooksIntegrationSubTab } from "@/components/settings/WebhooksIntegrationSubTab";
 import { LarkOneClickModal } from "@/components/integrations/LarkOneClickModal";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -43,7 +44,7 @@ type IntegrationConfig = {
   value_type: "string" | "boolean" | "number" | "json";
 };
 
-type TabKey = "lead_platforms" | "maps" | "whatsapp" | "email" | "mekari_sign" | "lusha" | "webhooks" | "lark" | "linkedin" | "search_engines";
+type TabKey = "lead_platforms" | "maps" | "whatsapp" | "email" | "mekari_sign" | "webhooks" | "lark" | "linkedin" | "search_engines";
 type GooglePermissionStatus = "available" | "restricted" | "not_enabled" | "invalid_key" | "not_configured" | "not_available" | "unknown";
 type GooglePermission = {
   id: string;
@@ -235,8 +236,6 @@ type LarkBaseSyncDialogState = {
 const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   GOOGLE_MAPS_ENABLED:            { category: "maps", key: "GOOGLE_MAPS_ENABLED",            value: "true",    is_secret: false, is_active: true, value_type: "boolean" },
   GOOGLE_MAPS_BROWSER_API_KEY:    { category: "maps", key: "GOOGLE_MAPS_BROWSER_API_KEY",    value: "",        is_secret: false, is_active: true, value_type: "string"  },
-  GOOGLE_SEARCH_API_KEY:          { category: "maps", key: "GOOGLE_SEARCH_API_KEY",          value: "",        is_secret: true,  is_active: true, value_type: "string"  },
-  GOOGLE_SEARCH_ENGINE_ID:        { category: "maps", key: "GOOGLE_SEARCH_ENGINE_ID",        value: "",        is_secret: false, is_active: true, value_type: "string"  },
   GOOGLE_SEARCH_SAFE:             { category: "maps", key: "GOOGLE_SEARCH_SAFE",             value: "off",     is_secret: false, is_active: true, value_type: "string"  },
   GOOGLE_SEARCH_GL:               { category: "maps", key: "GOOGLE_SEARCH_GL",               value: "id",      is_secret: false, is_active: true, value_type: "string"  },
   GOOGLE_SEARCH_HL:               { category: "maps", key: "GOOGLE_SEARCH_HL",               value: "id",      is_secret: false, is_active: true, value_type: "string"  },
@@ -254,10 +253,8 @@ const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   VERTEX_AI_VECTOR_SEARCH_LOCATION: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_LOCATION", value: "", is_secret: false, is_active: true, value_type: "string" },
   VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID", value: "", is_secret: false, is_active: true, value_type: "string" },
   VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID", value: "", is_secret: false, is_active: true, value_type: "string" },
-  TAVILY_API_KEY:                 { category: "maps", key: "TAVILY_API_KEY",                 value: "",        is_secret: true,  is_active: true, value_type: "string"  },
-  BRAVE_SEARCH_API_KEY:           { category: "maps", key: "BRAVE_SEARCH_API_KEY",           value: "",        is_secret: true,  is_active: true, value_type: "string"  },
-  SERPER_API_KEY:                 { category: "maps", key: "SERPER_API_KEY",                 value: "",        is_secret: true,  is_active: true, value_type: "string"  },
-  WEB_RESEARCH_PROVIDER_ORDER:    { category: "maps", key: "WEB_RESEARCH_PROVIDER_ORDER",    value: "tavily,google,serper,brave,yahoo", is_secret: false, is_active: true, value_type: "string" },
+  // Tavily, Serper, Brave and provider priority are owned by the
+  // "Search & PIC Discovery" tab (SearchEnginesIntegrationSubTab) — not saved from here.
 };
 
 const googlePermissionVariant = (status: GooglePermissionStatus): "success" | "warning" | "danger" => {
@@ -533,8 +530,9 @@ function createDefaultLeadPlatforms(): Record<string, IntegrationConfig> {
 function IntegrationsSettingsContent() {
   const toast = useToast();
   const searchParams = useSearchParams();
-  const queryTab = searchParams.get("tab") as TabKey | null;
-  const validTabs: TabKey[] = ["lead_platforms", "maps", "whatsapp", "email", "mekari_sign", "lusha", "webhooks", "lark", "linkedin", "search_engines"];
+  const rawQueryTab = searchParams.get("tab");
+  const queryTab = (rawQueryTab === "lusha" ? "search_engines" : rawQueryTab) as TabKey | null;
+  const validTabs: TabKey[] = ["lead_platforms", "maps", "whatsapp", "email", "mekari_sign", "webhooks", "lark", "linkedin", "search_engines"];
   const initialTab = queryTab && validTabs.includes(queryTab) ? queryTab : "lead_platforms";
   const [tab, setTab] = useState<TabKey>(initialTab);
 
@@ -738,36 +736,24 @@ function IntegrationsSettingsContent() {
       .then(json => {
         if (!json?.data) return;
 
-        if (json.data.maps || json.data.search_engines) {
-          const next = { ...DEFAULT_MAPS };
-          const combined = [
-            ...((json.data.maps as IntegrationConfig[]) || []),
-            ...((json.data.search_engines as IntegrationConfig[]) || []),
-          ];
-          combined.forEach((c) => {
-            if (next[c.key]) {
-              const val = c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value);
-              if (!next[c.key].value || val) {
-                next[c.key] = {
-                  ...c,
-                  value: val,
-                };
-              }
+        // A config key is stored once per tenant (unique tenant_id + key), but its
+        // `category` follows whichever tab saved it last. Resolve each tab's fields by
+        // key across every category so a value saved from another tab never shows as empty.
+        const allConfigs = Object.values(json.data as Record<string, IntegrationConfig[]>).flat();
+        const hydrate = (defaults: Record<string, IntegrationConfig>) => {
+          const next = { ...defaults };
+          allConfigs.forEach((c) => {
+            const base = next[c.key];
+            if (!base) return;
+            const val = c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value);
+            if (!base.value || val) {
+              next[c.key] = { ...base, ...c, category: base.category, value: val };
             }
           });
-          setMapsConfig(next);
-        }
+          return next;
+        };
 
-        if (json.data.lusha) {
-          const next = { ...DEFAULT_LUSHA };
-          (json.data.lusha as IntegrationConfig[]).forEach((c) => {
-            next[c.key] = {
-              ...c,
-              value: c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value),
-            };
-          });
-          setLushaConfig(next);
-        }
+        setMapsConfig(hydrate(DEFAULT_MAPS));
 
         if (json.data.lead_platforms) {
           const next = createDefaultLeadPlatforms();
@@ -1309,7 +1295,6 @@ function IntegrationsSettingsContent() {
           { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
           { key: "email", label: "Email & SMTP", icon: Mail },
           { key: "mekari_sign", label: "Mekari Sign & e-Meterai", icon: FileCheck },
-          { key: "lusha", label: "Lusha", icon: Key },
           { key: "linkedin", label: "LinkedIn", icon: Linkedin },
           { key: "lark", label: "Lark", icon: Key },
           { key: "webhooks", label: "Webhooks", icon: Key },
@@ -2016,44 +2001,21 @@ function IntegrationsSettingsContent() {
               <div className="rounded-xl border border-border p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-semibold">Custom Search API & Service Account</h3>
-                    <p className="text-xs text-muted-foreground">Used by Contact Search to find public LinkedIn profile candidates.</p>
+                    <h3 className="text-sm font-semibold">Google Cloud Service Account &amp; Query Parameters</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Google Custom Search API Key dan Search Engine ID (`cx`) kini dikelola terpusat di tab{" "}
+                      <button
+                        type="button"
+                        onClick={() => setTab("search_engines")}
+                        className="font-semibold text-[var(--brand)] underline underline-offset-2"
+                      >
+                        Search &amp; PIC Discovery
+                      </button>
+                      . Bagian ini khusus kredensial Service Account &amp; parameter query lanjutan.
+                    </p>
                   </div>
-                  <Badge variant="warning">key + cx required</Badge>
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-semibold">Custom Search API Key Override</label>
-                    <p className="mt-0.5 text-xs text-muted-foreground">Optional. Leave blank to use the shared Google API key.</p>
-                    <Input
-                      className="mt-2 font-mono"
-                      type="text"
-                      placeholder="Uses shared key when empty"
-                      value={mapsConfig.GOOGLE_SEARCH_API_KEY.value}
-                      onChange={(e) => setMapsConfig({
-                        ...mapsConfig,
-                        GOOGLE_SEARCH_API_KEY: { ...mapsConfig.GOOGLE_SEARCH_API_KEY, value: e.target.value },
-                      })}
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold">Programmable Search Engine ID</label>
-                    <p className="mt-0.5 text-xs text-muted-foreground">Required `cx` value from Programmable Search Engine.</p>
-                    <Input
-                      className="mt-2 font-mono"
-                      type="text"
-                      placeholder="cx / search engine ID"
-                      value={mapsConfig.GOOGLE_SEARCH_ENGINE_ID.value}
-                      onChange={(e) => setMapsConfig({
-                        ...mapsConfig,
-                        GOOGLE_SEARCH_ENGINE_ID: { ...mapsConfig.GOOGLE_SEARCH_ENGINE_ID, value: e.target.value },
-                      })}
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                  </div>
                   <div>
                     <label className="text-sm font-semibold">Service Account Email</label>
                     <p className="mt-0.5 text-xs text-muted-foreground">Google Cloud Service Account Client Email.</p>
@@ -2179,86 +2141,20 @@ function IntegrationsSettingsContent() {
                 </div>
               </div>
 
-              {/* Universal Web Research Providers for AI Profiling */}
-              <div className="rounded-xl border border-border p-4 bg-muted/10">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                      <Sparkles className="h-4 w-4 text-[var(--brand)]" />
-                      Universal Web Research Providers (AI Profiling)
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Layanan pencarian live web yang digunakan otomatis oleh semua AI Provider (OpenAI, Claude, BytePlus, Gemini).
-                    </p>
-                  </div>
-                  <Badge variant="outline">Multi-Provider Fallback</Badge>
-                </div>
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-semibold">Tavily API Key (Rekomendasi Utama)</label>
-                    <p className="mt-0.5 text-xs text-muted-foreground">API search khusus LLM (free tier ±1.000 req/bulan di tavily.com).</p>
-                    <Input
-                      className="mt-2 font-mono"
-                      type="password"
-                      placeholder="tvly-..."
-                      value={mapsConfig.TAVILY_API_KEY.value}
-                      onChange={(e) => setMapsConfig({
-                        ...mapsConfig,
-                        TAVILY_API_KEY: { ...mapsConfig.TAVILY_API_KEY, value: e.target.value },
-                      })}
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold">Serper API Key</label>
-                    <p className="mt-0.5 text-xs text-muted-foreground">Google search API cepat tanpa perlu Programmable Engine (serper.dev).</p>
-                    <Input
-                      className="mt-2 font-mono"
-                      type="password"
-                      placeholder="serper key..."
-                      value={mapsConfig.SERPER_API_KEY.value}
-                      onChange={(e) => setMapsConfig({
-                        ...mapsConfig,
-                        SERPER_API_KEY: { ...mapsConfig.SERPER_API_KEY, value: e.target.value },
-                      })}
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold">Brave Search API Key</label>
-                    <p className="mt-0.5 text-xs text-muted-foreground">Pencarian independen global (brave.com/search/api).</p>
-                    <Input
-                      className="mt-2 font-mono"
-                      type="password"
-                      placeholder="BSA..."
-                      value={mapsConfig.BRAVE_SEARCH_API_KEY.value}
-                      onChange={(e) => setMapsConfig({
-                        ...mapsConfig,
-                        BRAVE_SEARCH_API_KEY: { ...mapsConfig.BRAVE_SEARCH_API_KEY, value: e.target.value },
-                      })}
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold">Urutan Prioritas Provider</label>
-                    <p className="mt-0.5 text-xs text-muted-foreground">Pisahkan dengan koma (default: tavily,google,serper,brave,yahoo). <strong>Yahoo Search</strong> otomatis aktif sebagai fallback 100% gratis tanpa API key.</p>
-                    <Input
-                      className="mt-2 font-mono"
-                      type="text"
-                      placeholder="tavily,google,serper,brave,yahoo"
-                      value={mapsConfig.WEB_RESEARCH_PROVIDER_ORDER.value}
-                      onChange={(e) => setMapsConfig({
-                        ...mapsConfig,
-                        WEB_RESEARCH_PROVIDER_ORDER: { ...mapsConfig.WEB_RESEARCH_PROVIDER_ORDER, value: e.target.value },
-                      })}
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                  </div>
-                </div>
+              {/* Web research providers moved: single source of truth is the Search & PIC Discovery tab */}
+              <div className="rounded-xl border border-[var(--brand)]/20 bg-[var(--brand)]/5 p-4">
+                <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-[var(--brand)]" />
+                  Web Research Providers (AI Profiling)
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Tavily, Serper, Brave, dan urutan prioritas provider kini dikelola di satu tempat agar AI Lead Profiling dan
+                  Contact Deep Search memakai konfigurasi yang sama.
+                </p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => setTab("search_engines")}>
+                  <Globe2 className="h-4 w-4" />
+                  Buka tab Search &amp; PIC Discovery
+                </Button>
               </div>
 
               <div className="rounded-xl border border-border p-4">
@@ -2516,115 +2412,6 @@ function IntegrationsSettingsContent() {
       {tab === "mekari_sign" && <MekariSignIntegrationSubTab />}
 
       {/* ── Lusha ── */}
-      {tab === "lusha" && (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-1">Lusha Extension (Contact Enrichment)</h2>
-            <p className="text-xs text-muted-foreground mb-6">
-              Configure Lusha API Key and rate-limiting policies for the Contact Discovery Engine.
-            </p>
-
-            <div className="space-y-5">
-              <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3">
-                <div>
-                  <label className="text-sm font-medium">Enable Lusha Contact Discovery</label>
-                  <p className="text-xs text-muted-foreground">Allows automatic contact discovery during the lead ingestion process.</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={lushaConfig.LUSHA_ENABLED.value === "true"}
-                  onChange={(e) => setLushaConfig({
-                    ...lushaConfig,
-                    LUSHA_ENABLED: { ...lushaConfig.LUSHA_ENABLED, value: e.target.checked ? "true" : "false" },
-                  })}
-                  className="h-4 w-4 rounded border-border text-[var(--status-info)] focus:ring-[color:var(--brand)]"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Lusha API Key</label>
-                <input
-                  type="text"
-                  placeholder="Secret Key..."
-                  value={lushaConfig.LUSHA_API_KEY.value}
-                  onChange={(e) => setLushaConfig({
-                    ...lushaConfig,
-                    LUSHA_API_KEY: { ...lushaConfig.LUSHA_API_KEY, value: e.target.value },
-                  })}
-                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Max Daily Requests</label>
-                <p className="text-xs text-muted-foreground mt-0.5">Total Lusha API calls allowed per calendar day across all batches.</p>
-                <input
-                  type="number"
-                  min="1"
-                  value={lushaConfig.LUSHA_MAX_DAILY_REQUESTS.value}
-                  onChange={(e) => setLushaConfig({
-                    ...lushaConfig,
-                    LUSHA_MAX_DAILY_REQUESTS: { ...lushaConfig.LUSHA_MAX_DAILY_REQUESTS, value: e.target.value },
-                  })}
-                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Max Enrichments per Batch</label>
-                <p className="text-xs text-muted-foreground mt-0.5">Maximum number of leads to enrich in a single queue batch run.</p>
-                <input
-                  type="number"
-                  min="1"
-                  value={lushaConfig.LUSHA_MAX_PER_BATCH.value}
-                  onChange={(e) => setLushaConfig({
-                    ...lushaConfig,
-                    LUSHA_MAX_PER_BATCH: { ...lushaConfig.LUSHA_MAX_PER_BATCH, value: e.target.value },
-                  })}
-                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Enrichment Priority</label>
-                <p className="text-xs text-muted-foreground mt-0.5">Provider order when multiple enrichment sources are configured (lower = higher priority).</p>
-                <input
-                  type="number"
-                  min="1"
-                  value={lushaConfig.LUSHA_ENRICHMENT_PRIORITY.value}
-                  onChange={(e) => setLushaConfig({
-                    ...lushaConfig,
-                    LUSHA_ENRICHMENT_PRIORITY: { ...lushaConfig.LUSHA_ENRICHMENT_PRIORITY, value: e.target.value },
-                  })}
-                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center gap-3">
-              <button
-                onClick={() => handleSave("lusha", lushaConfig)}
-                disabled={saving}
-                className="flex items-center gap-2 rounded-lg bg-[var(--status-info)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[var(--status-info)] disabled:opacity-50 transition-colors"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save Lusha Config
-              </button>
-              {successMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-success)]">
-                  <CheckCircle2 className="h-4 w-4" /> {successMsg}
-                </span>
-              )}
-              {errorMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-danger)]">
-                  <AlertCircle className="h-4 w-4" /> {errorMsg}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── LinkedIn Developer Integration ── */}
       {tab === "linkedin" && (
         <div className="space-y-4">
@@ -3213,15 +3000,7 @@ function IntegrationsSettingsContent() {
         </div>
       )}
 
-      {tab === "webhooks" && (
-        <div className="rounded-xl border border-border bg-card p-10 text-center shadow-sm">
-          <Key className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
-          <p className="text-sm font-medium text-muted-foreground">Webhook URLs are managed in</p>
-          <a href="/settings/webhooks" className="mt-1 inline-block text-sm text-[var(--status-info)] underline underline-offset-2 hover:text-[var(--status-info)]">
-            Settings → Webhooks →
-          </a>
-        </div>
-      )}
+      {tab === "webhooks" && <WebhooksIntegrationSubTab />}
 
       {tab === "search_engines" && <SearchEnginesIntegrationSubTab />}
 

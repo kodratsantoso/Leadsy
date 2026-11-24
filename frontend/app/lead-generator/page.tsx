@@ -25,7 +25,7 @@ const generatorModules = [
   {
     title: "Webhook & Event Intake",
     description: "Route online and offline lead sources through idempotent webhook and upload foundations.",
-    href: "/settings/webhooks",
+    href: "/settings/integrations?tab=webhooks",
     icon: Webhook,
     badge: "Settings",
   },

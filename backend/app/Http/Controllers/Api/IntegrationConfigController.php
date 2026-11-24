@@ -38,8 +38,9 @@ class IntegrationConfigController extends Controller
             ->orderBy('key')
             ->get();
 
-        // Deduplicate so tenant-specific row overrides global row for each category+key
-        $uniqueConfigs = $configs->unique(fn ($c) => ($c->category ?? '') . ':' . $c->key)->map(function ($config) {
+        // Deduplicate by key so a tenant-specific row ALWAYS overrides any global row,
+        // even when a setting's category migrated across tabs over time.
+        $uniqueConfigs = $configs->unique(fn ($c) => $c->key)->map(function ($config) {
             return [
                 'id' => $config->id,
                 'category' => $config->category,
@@ -49,27 +50,40 @@ class IntegrationConfigController extends Controller
                 'is_active' => $config->is_active,
                 'value_type' => $config->value_type,
             ];
-        });
+        })->values();
 
         $grouped = $uniqueConfigs->groupBy('category');
 
-        // Bridge shared web research keys between maps and search_engines categories
-        $sharedSearchKeys = ['TAVILY_API_KEY', 'SERPER_API_KEY', 'BRAVE_SEARCH_API_KEY', 'TAVILY_ENABLED', 'SERPER_ENABLED'];
+        // Bridge shared search & enrichment keys across search_engines / maps / lusha categories
+        // so legacy readers and consolidated tabs always see identical values.
+        $sharedSearchKeys = [
+            'TAVILY_API_KEY',
+            'SERPER_API_KEY',
+            'BRAVE_SEARCH_API_KEY',
+            'TAVILY_ENABLED',
+            'SERPER_ENABLED',
+            'GOOGLE_CSE_ENABLED',
+            'GOOGLE_SEARCH_API_KEY',
+            'GOOGLE_CUSTOM_SEARCH_API_KEY',
+            'GOOGLE_SEARCH_ENGINE_ID',
+            'GOOGLE_CUSTOM_SEARCH_ENGINE_ID',
+            'LUSHA_API_KEY',
+            'LUSHA_ENABLED',
+            'LUSHA_SEARCH_ENABLED',
+        ];
         foreach ($sharedSearchKeys as $sharedKey) {
-            $fromSearch = $uniqueConfigs->first(fn ($c) => $c['key'] === $sharedKey && $c['category'] === 'search_engines' && !empty($c['value']));
-            $fromMaps = $uniqueConfigs->first(fn ($c) => $c['key'] === $sharedKey && $c['category'] === 'maps' && !empty($c['value']));
-            $activeItem = $fromSearch ?? $fromMaps;
+            $activeItem = $uniqueConfigs->first(fn ($c) => $c['key'] === $sharedKey && $c['value'] !== null && $c['value'] !== '');
 
             if ($activeItem) {
-                foreach (['search_engines', 'maps'] as $cat) {
-                    if (!$grouped->has($cat)) {
+                foreach (['search_engines', 'maps', 'lusha'] as $cat) {
+                    if (! $grouped->has($cat)) {
                         $grouped->put($cat, collect([]));
                     }
                     $items = $grouped->get($cat);
                     $existingIndex = $items->search(fn ($item) => $item['key'] === $sharedKey);
                     $bridgedItem = array_merge($activeItem, ['category' => $cat]);
                     if ($existingIndex !== false) {
-                        if (empty($items[$existingIndex]['value'])) {
+                        if ($items[$existingIndex]['value'] === null || $items[$existingIndex]['value'] === '') {
                             $items[$existingIndex] = $bridgedItem;
                         }
                     } else {

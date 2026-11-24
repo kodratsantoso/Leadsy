@@ -44,7 +44,7 @@ const categories = [
       { icon: Mail,      title: "Email Integration",      desc: "Konfigurasi server SMTP pengiriman dan sinkronisasi IMAP Lark / Custom Email", href: "/settings/integrations?tab=email",        color: "bg-[color:var(--status-info)]" },
       { icon: Key,       title: "Integration Settings",   desc: "Social media, ad platform, CRM, SSO, Maps, WhatsApp, and credentials", href: "/settings/integrations",  color: "bg-[color:var(--status-warning)]" },
       { icon: FileCheck, title: "Mekari Sign & e-Meterai", desc: "Integrasi tanda tangan elektronik tersertifikasi dan pembubuhan e-Meterai resmi Peruri", href: "/settings/integrations?tab=mekari_sign", color: "bg-[color:var(--status-info)]" },
-      { icon: Webhook,   title: "Webhooks",              desc: "Webhook URL configuration and event management",                     href: "/settings/webhooks",      color: "bg-[color:var(--status-info)]" },
+      { icon: Webhook,   title: "Webhooks",              desc: "Webhook URL configuration and event management",                     href: "/settings/integrations?tab=webhooks", color: "bg-[color:var(--status-info)]" },
       { icon: FileText,  title: "API Documentation",     desc: "API reference and Integration Token generation",                     href: "/settings/api",           color: "bg-[color:var(--brand)]" },
     ]
   },

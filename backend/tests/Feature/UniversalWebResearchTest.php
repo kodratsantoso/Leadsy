@@ -97,4 +97,84 @@ class UniversalWebResearchTest extends TestCase
         $this->assertSame('https://kalbe.co.id', $result['official_website']);
         $this->assertStringContainsString('Perusahaan farmasi terkemuka di Asia Tenggara', $result['findings']);
     }
+
+    public function test_unified_search_engine_priority_and_toggle_govern_web_research(): void
+    {
+        putenv('WEB_RESEARCH_PROVIDER_ORDER');
+        putenv('TAVILY_API_KEY');
+        putenv('SERPER_API_KEY');
+
+        $tenant = \App\Models\Tenant::create([
+            'name' => 'Wings Tenant',
+            'slug' => 'wings-tenant',
+            'status' => 'active',
+        ]);
+
+        // Tavily has a key, but its toggle is explicitly disabled; Serper is enabled and ranked P1.
+        \App\Models\IntegrationConfig::create([
+            'tenant_id' => $tenant->id,
+            'category' => 'search_engines',
+            'key' => 'TAVILY_API_KEY',
+            'value' => 'tvly-disabled-key',
+            'is_secret' => true,
+            'is_active' => true,
+            'value_type' => 'string',
+        ]);
+        \App\Models\IntegrationConfig::create([
+            'tenant_id' => $tenant->id,
+            'category' => 'search_engines',
+            'key' => 'TAVILY_ENABLED',
+            'value' => 'false',
+            'is_secret' => false,
+            'is_active' => true,
+            'value_type' => 'boolean',
+        ]);
+        \App\Models\IntegrationConfig::create([
+            'tenant_id' => $tenant->id,
+            'category' => 'search_engines',
+            'key' => 'SERPER_API_KEY',
+            'value' => 'serper-live-key',
+            'is_secret' => true,
+            'is_active' => true,
+            'value_type' => 'string',
+        ]);
+        \App\Models\IntegrationConfig::create([
+            'tenant_id' => $tenant->id,
+            'category' => 'search_engines',
+            'key' => 'SERPER_ENABLED',
+            'value' => 'true',
+            'is_secret' => false,
+            'is_active' => true,
+            'value_type' => 'boolean',
+        ]);
+        \App\Models\IntegrationConfig::create([
+            'tenant_id' => $tenant->id,
+            'category' => 'search_engines',
+            'key' => 'SEARCH_ENGINE_PRIORITY',
+            'value' => json_encode(['tavily', 'serper', 'google_cse']),
+            'is_secret' => false,
+            'is_active' => true,
+            'value_type' => 'json',
+        ]);
+
+        Http::fake([
+            'google.serper.dev/*' => Http::response([
+                'organic' => [
+                    [
+                        'title' => 'Wings Surya - Wingsfood Indonesia',
+                        'link' => 'https://wingscorp.com',
+                        'snippet' => 'Produsen FMCG terkemuka di Indonesia (Mie Sedaap, Teh Javana).',
+                    ],
+                ],
+            ], 200),
+            'https://wingscorp.com*' => Http::response('<html><body><h1>Wings Group Indonesia</h1></body></html>', 200, ['Content-Type' => 'text/html']),
+        ]);
+
+        $result = app(CompanyWebResearchService::class)->research('Wingsfood', null, $tenant->id);
+
+        $this->assertTrue($result['available']);
+        $this->assertContains('serper', $result['providers'] ?? []);
+        $this->assertNotContains('tavily', $result['providers'] ?? []);
+        $this->assertStringContainsString('Produsen FMCG terkemuka di Indonesia', $result['findings']);
+    }
 }

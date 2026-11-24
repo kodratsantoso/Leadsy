@@ -43,7 +43,8 @@ class GoogleCustomSearchClient implements WebSearchProvider
 
     public function isConfigured(?int $tenantId = null): bool
     {
-        return $this->config->value(self::API_KEY_KEYS, $tenantId) !== null
+        return $this->config->isEnabled(['GOOGLE_CSE_ENABLED'], $tenantId, ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_CUSTOM_SEARCH_API_KEY'])
+            && $this->config->value(self::API_KEY_KEYS, $tenantId) !== null
             && $this->config->value(self::ENGINE_ID_KEYS, $tenantId) !== null;
     }
 

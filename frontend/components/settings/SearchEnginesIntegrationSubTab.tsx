@@ -50,6 +50,9 @@ interface SearchEngineConfig {
   LUSHA_SEARCH_ENABLED: boolean;
   LUSHA_API_KEY: string;
 
+  /** AI Profiling-only fallback (no PIC pipeline adapter). */
+  BRAVE_SEARCH_API_KEY: string;
+
   SEARCH_ENGINE_PRIORITY: SearchEngineKey[];
 }
 
@@ -73,6 +76,8 @@ const DEFAULT_CONFIG: SearchEngineConfig = {
 
   LUSHA_SEARCH_ENABLED: false,
   LUSHA_API_KEY: "",
+
+  BRAVE_SEARCH_API_KEY: "",
 
   SEARCH_ENGINE_PRIORITY: ["serper", "custom", "google_cse", "tavily", "lusha"],
 };
@@ -167,14 +172,16 @@ export function SearchEnginesIntegrationSubTab() {
           CUSTOM_SEARCH_METHOD: (findVal("CUSTOM_SEARCH_METHOD", "POST") as "POST" | "GET"),
 
           GOOGLE_CSE_ENABLED: findBool("GOOGLE_CSE_ENABLED"),
-          GOOGLE_CUSTOM_SEARCH_API_KEY: findVal("GOOGLE_CUSTOM_SEARCH_API_KEY", findVal("GOOGLE_SEARCH_API_KEY")),
-          GOOGLE_CUSTOM_SEARCH_ENGINE_ID: findVal("GOOGLE_CUSTOM_SEARCH_ENGINE_ID", findVal("GOOGLE_SEARCH_ENGINE_ID")),
+          GOOGLE_CUSTOM_SEARCH_API_KEY: findVal("GOOGLE_SEARCH_API_KEY", findVal("GOOGLE_CUSTOM_SEARCH_API_KEY")),
+          GOOGLE_CUSTOM_SEARCH_ENGINE_ID: findVal("GOOGLE_SEARCH_ENGINE_ID", findVal("GOOGLE_CUSTOM_SEARCH_ENGINE_ID")),
 
           TAVILY_ENABLED: findBool("TAVILY_ENABLED"),
           TAVILY_API_KEY: findVal("TAVILY_API_KEY"),
 
           LUSHA_SEARCH_ENABLED: findBool("LUSHA_SEARCH_ENABLED", findBool("LUSHA_ENABLED")),
           LUSHA_API_KEY: findVal("LUSHA_API_KEY"),
+
+          BRAVE_SEARCH_API_KEY: findVal("BRAVE_SEARCH_API_KEY"),
 
           SEARCH_ENGINE_PRIORITY: priorityArr,
         });
@@ -272,13 +279,18 @@ export function SearchEnginesIntegrationSubTab() {
 
         { key: "GOOGLE_CSE_ENABLED", value: config.GOOGLE_CSE_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
         { key: "GOOGLE_CUSTOM_SEARCH_API_KEY", value: config.GOOGLE_CUSTOM_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
+        { key: "GOOGLE_SEARCH_API_KEY", value: config.GOOGLE_CUSTOM_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
         { key: "GOOGLE_CUSTOM_SEARCH_ENGINE_ID", value: config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID.trim(), is_secret: false, value_type: "string" },
+        { key: "GOOGLE_SEARCH_ENGINE_ID", value: config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID.trim(), is_secret: false, value_type: "string" },
 
         { key: "TAVILY_ENABLED", value: config.TAVILY_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
         { key: "TAVILY_API_KEY", value: config.TAVILY_API_KEY.trim(), is_secret: true, value_type: "string" },
 
         { key: "LUSHA_SEARCH_ENABLED", value: config.LUSHA_SEARCH_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
+        { key: "LUSHA_ENABLED", value: config.LUSHA_SEARCH_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
         { key: "LUSHA_API_KEY", value: config.LUSHA_API_KEY.trim(), is_secret: true, value_type: "string" },
+
+        { key: "BRAVE_SEARCH_API_KEY", value: config.BRAVE_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
 
         { key: "SEARCH_ENGINE_PRIORITY", value: JSON.stringify(config.SEARCH_ENGINE_PRIORITY), is_secret: false, value_type: "json" },
       ],
@@ -325,7 +337,7 @@ export function SearchEnginesIntegrationSubTab() {
               <Badge variant="neutral">Deep Search Engine</Badge>
             </div>
             <p className="mt-1.5 text-xs text-muted-foreground">
-              Konfigurasi mesin pencari dan alur sekuensial prioritas untuk fitur <strong>Contact Deep Search</strong>.
+              Satu-satunya tempat konfigurasi mesin pencari untuk <strong>Contact Deep Search</strong> dan <strong>AI Lead Profiling</strong>.
               Sistem akan menjalankan mesin pencari dari <strong>P1</strong>; jika tidak ditemukan profil PIC, sistem secara otomatis
               beralih ke <strong>P2</strong>, <strong>P3</strong>, dan seterusnya secara berurutan tanpa jeda kegagalan.
             </p>
@@ -683,7 +695,16 @@ export function SearchEnginesIntegrationSubTab() {
                     type={visibleSecrets.GOOGLE_CUSTOM_SEARCH_API_KEY ? "text" : "password"}
                     placeholder="AIzaSy..."
                     value={config.GOOGLE_CUSTOM_SEARCH_API_KEY}
-                    onChange={(e) => setConfig({ ...config, GOOGLE_CUSTOM_SEARCH_API_KEY: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setConfig({
+                        ...config,
+                        GOOGLE_CUSTOM_SEARCH_API_KEY: val,
+                        GOOGLE_CSE_ENABLED: val.trim().length > 0 && config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID.trim().length > 0
+                          ? true
+                          : config.GOOGLE_CSE_ENABLED,
+                      });
+                    }}
                     className="pr-10"
                   />
                   <button
@@ -702,7 +723,16 @@ export function SearchEnginesIntegrationSubTab() {
                   type="text"
                   placeholder="e.g. 0123456789abcdef:example"
                   value={config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID}
-                  onChange={(e) => setConfig({ ...config, GOOGLE_CUSTOM_SEARCH_ENGINE_ID: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setConfig({
+                      ...config,
+                      GOOGLE_CUSTOM_SEARCH_ENGINE_ID: val,
+                      GOOGLE_CSE_ENABLED: val.trim().length > 0 && config.GOOGLE_CUSTOM_SEARCH_API_KEY.trim().length > 0
+                        ? true
+                        : config.GOOGLE_CSE_ENABLED,
+                    });
+                  }}
                   className="mt-1"
                 />
               </div>
@@ -849,9 +879,16 @@ export function SearchEnginesIntegrationSubTab() {
               <div className="relative mt-1">
                 <Input
                   type={visibleSecrets.LUSHA_API_KEY ? "text" : "password"}
-                  placeholder="Lusha API Key (terhubung juga dengan tab Lusha)..."
+                  placeholder="Paste Lusha API Key..."
                   value={config.LUSHA_API_KEY}
-                  onChange={(e) => setConfig({ ...config, LUSHA_API_KEY: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setConfig({
+                      ...config,
+                      LUSHA_API_KEY: val,
+                      LUSHA_SEARCH_ENABLED: val.trim().length > 0 ? true : config.LUSHA_SEARCH_ENABLED,
+                    });
+                  }}
                   className="pr-10"
                 />
                 <button
@@ -863,7 +900,7 @@ export function SearchEnginesIntegrationSubTab() {
                 </button>
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Kunci ini tersinkronisasi otomatis dengan pengaturan di tab <strong>Lusha</strong>.
+                Digunakan bersama oleh <strong>Contact Deep Search</strong> dan <strong>Lead Contact Enrichment</strong>.
               </p>
             </div>
 
@@ -893,6 +930,37 @@ export function SearchEnginesIntegrationSubTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Profiling-only fallback provider */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold">Fallback Riset Web (khusus AI Lead Profiling)</CardTitle>
+          <CardDescription className="mt-1 text-xs">
+            Dipakai AI Lead Profiling setelah provider prioritas di atas gagal. Jika semua gagal, Yahoo Search (gratis, tanpa API key)
+            dipakai sebagai cadangan terakhir.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <label className="text-xs font-medium text-muted-foreground">Brave Search API Key (opsional)</label>
+          <div className="relative mt-1">
+            <Input
+              type={visibleSecrets.BRAVE_SEARCH_API_KEY ? "text" : "password"}
+              placeholder="BSA..."
+              value={config.BRAVE_SEARCH_API_KEY}
+              onChange={(e) => setConfig({ ...config, BRAVE_SEARCH_API_KEY: e.target.value })}
+              className="pr-10"
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              onClick={() => toggleVisibility("BRAVE_SEARCH_API_KEY")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {visibleSecrets.BRAVE_SEARCH_API_KEY ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ── Bottom Save Bar ── */}
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
