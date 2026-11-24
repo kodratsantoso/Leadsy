@@ -32,12 +32,13 @@ class AiLeadProfilingController extends Controller
         $website = $request->filled('website') ? (string) $request->input('website') : null;
         $leadId = $request->filled('lead_id') ? (int) $request->input('lead_id') : null;
         $userId = $request->user()?->id;
+        $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id;
 
         if ($request->boolean('sync')) {
             @set_time_limit(120);
-            $output = $this->profilingService->startProfilingSync($companyName, $website, $leadId, $userId);
+            $output = $this->profilingService->startProfilingSync($companyName, $website, $leadId, $userId, $tenantId);
         } else {
-            $output = $this->profilingService->startProfiling($companyName, $website, $leadId, $userId);
+            $output = $this->profilingService->startProfiling($companyName, $website, $leadId, $userId, $tenantId);
         }
 
         return response()->json([

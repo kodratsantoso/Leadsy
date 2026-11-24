@@ -22,12 +22,13 @@ class RunAiLeadProfilingJob implements ShouldQueue
         public string $companyName,
         public ?string $website = null,
         public ?int $leadId = null,
+        public ?int $tenantId = null,
     ) {}
 
     public function handle(AiLeadProfilingService $profilingService): void
     {
         try {
-            $profilingService->performProfiling($this->output, $this->companyName, $this->website, $this->leadId);
+            $profilingService->performProfiling($this->output, $this->companyName, $this->website, $this->leadId, $this->tenantId);
         } catch (\Throwable $e) {
             Log::error("[AiLeadProfiling] Profiling failed for {$this->companyName}", ['error' => $e->getMessage()]);
             

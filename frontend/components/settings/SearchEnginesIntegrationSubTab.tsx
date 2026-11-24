@@ -232,7 +232,9 @@ export function SearchEnginesIntegrationSubTab() {
         [provider]: {
           loading: false,
           success: res.ok && data.success,
-          message: data.message || (res.ok ? "Koneksi berhasil terverifikasi." : "Uji koneksi gagal."),
+          message: res.ok && data.success
+            ? `${data.message || "Koneksi berhasil terverifikasi!"} (Jangan lupa klik "Simpan Konfigurasi" agar tersimpan ke sistem)`
+            : (data.message || "Uji koneksi gagal."),
         },
       }));
     } catch (e: unknown) {
