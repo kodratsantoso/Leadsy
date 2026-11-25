@@ -49,6 +49,8 @@ import {
   TableLoading,
   TableHead,
   TableHeaderCell,
+  SortableHeaderCell,
+  SortDirection,
   TableRow,
   TableShell,
 } from "@/components/ui/table";
@@ -670,6 +672,16 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const [showFilters, setShowFilters] = useState(false);
   const [minScore, setMinScore] = useState(searchParams.get("min_score") ?? "");
   const [maxScore, setMaxScore] = useState(searchParams.get("max_score") ?? "");
+  const [sortField, setSortField] = useState<string>(searchParams.get("sort") ?? "");
+  const [sortDir, setSortDir] = useState<SortDirection>(
+    (searchParams.get("dir") as SortDirection) ?? null
+  );
+
+  const handleSort = (columnKey: string, nextDir: SortDirection) => {
+    setSortField(nextDir ? columnKey : "");
+    setSortDir(nextDir);
+    setPage(1);
+  };
 
   // Keep the current filters mirrored into the URL query string — filters
   // only ever read their *initial* value from searchParams on mount, so
@@ -692,6 +704,8 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
     }
     if (minScore) params.set("min_score", minScore);
     if (maxScore) params.set("max_score", maxScore);
+    if (sortField) params.set("sort", sortField);
+    if (sortDir) params.set("dir", sortDir);
     // Only relevant on the plain /leads route — the dedicated
     // /leads/industry/[id] route carries the industry in its path instead.
     if (industryFilter && pathname === "/leads") params.set("industry_id", industryFilter);
@@ -699,7 +713,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, funnelStageId, qualificationFilter, gradeFilter, duplicateFilter, sourceFilter, channelFilter, ownerFilter, ownerRoleFilter, minScore, maxScore]);
+  }, [search, funnelStageId, qualificationFilter, gradeFilter, duplicateFilter, sourceFilter, channelFilter, ownerFilter, ownerRoleFilter, minScore, maxScore, sortField, sortDir]);
 
   const [feedback, setFeedback] = useState("");
   const [formError, setFormError] = useState("");
@@ -899,11 +913,13 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
     if (ownerFilter) params.set(ownerRoleFilter || "owner_id", ownerFilter);
     if (minScore) params.set("min_score", minScore);
     if (maxScore) params.set("max_score", maxScore);
+    if (sortField) params.set("sort", sortField);
+    if (sortDir) params.set("dir", sortDir);
     return params;
   };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, perPage, search, funnelStageId, funnelMinSequence, qualificationFilter, gradeFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, industryFilter, ownerFilter, ownerRoleFilter, minScore, maxScore],
+    queryKey: ["leads", page, perPage, search, funnelStageId, funnelMinSequence, qualificationFilter, gradeFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, industryFilter, ownerFilter, ownerRoleFilter, minScore, maxScore, sortField, sortDir],
     queryFn: async () => {
       const params = buildLeadFilterParams();
       params.set("page", String(page));
@@ -2124,13 +2140,76 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                     />
                   </TableHeaderCell>
                 )}
-                <TableHeaderCell className="min-w-[220px]">Company</TableHeaderCell>
-                <TableHeaderCell className="min-w-[140px]">Industry</TableHeaderCell>
-                <TableHeaderCell className="min-w-[160px]">Location</TableHeaderCell>
-                <TableHeaderCell className="w-[90px]">Score</TableHeaderCell>
-                <TableHeaderCell className="w-[120px]">Qualification</TableHeaderCell>
-                <TableHeaderCell className="min-w-[140px]">Owner</TableHeaderCell>
-                <TableHeaderCell className="w-[120px]">Stage</TableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="company"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="alphabet"
+                  onSort={handleSort}
+                  className="min-w-[220px]"
+                >
+                  Company
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="industry"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="alphabet"
+                  onSort={handleSort}
+                  className="min-w-[140px]"
+                >
+                  Industry
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="location"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="alphabet"
+                  onSort={handleSort}
+                  className="min-w-[160px]"
+                >
+                  Location
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="score"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="number"
+                  onSort={handleSort}
+                  className="w-[100px]"
+                >
+                  Score
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="qualification"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="status"
+                  onSort={handleSort}
+                  className="w-[130px]"
+                >
+                  Qualification
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="owner"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="alphabet"
+                  onSort={handleSort}
+                  className="min-w-[140px]"
+                >
+                  Owner
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="stage"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="status"
+                  onSort={handleSort}
+                  className="w-[130px]"
+                >
+                  Stage
+                </SortableHeaderCell>
                 <TableHeaderCell className="w-[90px]">Actions</TableHeaderCell>
               </tr>
             </TableHead>

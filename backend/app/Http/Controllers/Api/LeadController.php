@@ -211,10 +211,44 @@ class LeadController extends Controller
 
         // Sorting
         $sortField = $request->get('sort', 'created_at');
-        $sortDir = $request->get('dir', 'desc');
-        $allowed = ['company_name', 'lead_score', 'created_at', 'qualification_status'];
-        if (in_array($sortField, $allowed)) {
-            $query->orderBy($sortField, $sortDir === 'asc' ? 'asc' : 'desc');
+        $sortDir = strtolower($request->get('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        switch ($sortField) {
+            case 'company':
+            case 'company_name':
+                $query->orderBy('leads.company_name', $sortDir);
+                break;
+            case 'industry':
+                $query->leftJoin('industries', 'industries.id', '=', 'leads.industry_id')
+                    ->orderBy('industries.name', $sortDir)
+                    ->select('leads.*');
+                break;
+            case 'location':
+            case 'address':
+                $query->orderBy('leads.address', $sortDir);
+                break;
+            case 'score':
+            case 'lead_score':
+                $query->orderBy('leads.lead_score', $sortDir);
+                break;
+            case 'qualification':
+            case 'qualification_status':
+                $query->orderBy('leads.qualification_status', $sortDir);
+                break;
+            case 'owner':
+                $query->leftJoin('users as lead_owners', 'lead_owners.id', '=', 'leads.owner_id')
+                    ->orderBy('lead_owners.name', $sortDir)
+                    ->select('leads.*');
+                break;
+            case 'stage':
+                $query->leftJoin('funnel_stages', 'funnel_stages.id', '=', 'leads.funnel_stage_id')
+                    ->orderBy('funnel_stages.sequence', $sortDir)
+                    ->select('leads.*');
+                break;
+            case 'created_at':
+            default:
+                $query->orderBy('leads.created_at', $sortDir);
+                break;
         }
 
         $leads = $query->paginate($request->get('per_page', 25));

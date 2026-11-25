@@ -39,6 +39,10 @@ import {
   TableEmpty,
   TableHead,
   TableHeaderCell,
+  SortableHeaderCell,
+  SortDirection,
+  SortType,
+  sortTableData,
   TableRow,
   TableShell,
 } from "@/components/ui/table";
@@ -149,6 +153,28 @@ export default function AuditLogsPage() {
     total_events: data?.total || 0,
     high_risk_events: 0,
   };
+
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDirection>(null);
+  const [sortType, setSortType] = useState<SortType>("default");
+
+  const handleSort = (columnKey: string, nextDir: SortDirection, type: SortType = "default") => {
+    setSortField(nextDir ? columnKey : null);
+    setSortDir(nextDir);
+    setSortType(type);
+  };
+
+  const sortedLogs = useMemo(() => {
+    if (!sortField || !sortDir) return logs;
+    return sortTableData(logs, sortField, sortDir, sortType, (item: any) => {
+      if (sortField === "created_at") return item.created_at;
+      if (sortField === "user") return item.user?.name || item.user_id || "";
+      if (sortField === "action") return item.action || "";
+      if (sortField === "auditable_type") return item.auditable_type || "";
+      if (sortField === "location") return item.ip_address || "";
+      return item[sortField];
+    });
+  }, [logs, sortField, sortDir, sortType]);
 
   const handleCopyIp = (ip: string) => {
     navigator.clipboard.writeText(ip);
@@ -361,11 +387,51 @@ export default function AuditLogsPage() {
         <Table>
           <TableHead>
             <tr>
-              <TableHeaderCell>Waktu</TableHeaderCell>
-              <TableHeaderCell>Pelaku (Actor)</TableHeaderCell>
-              <TableHeaderCell>Aksi &amp; Risiko</TableHeaderCell>
-              <TableHeaderCell>Modul &amp; Domain</TableHeaderCell>
-              <TableHeaderCell>Lokasi &amp; Klien</TableHeaderCell>
+              <SortableHeaderCell
+                columnKey="created_at"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="date"
+                onSort={(k, d) => handleSort(k, d, "date")}
+              >
+                Waktu
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="user"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Pelaku (Actor)
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="action"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Aksi &amp; Risiko
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="auditable_type"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Modul &amp; Domain
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="location"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Lokasi &amp; Klien
+              </SortableHeaderCell>
               <TableHeaderCell className="text-right">Rincian</TableHeaderCell>
             </tr>
           </TableHead>
@@ -378,7 +444,7 @@ export default function AuditLogsPage() {
             ) : logs.length === 0 ? (
               <TableEmpty colSpan={6}>Tidak ada catatan audit yang cocok dengan filter.</TableEmpty>
             ) : (
-              logs.map((log: any) => {
+              sortedLogs.map((log: any) => {
                 const actorName = log.actor_name || log.user?.name || "System / CLI";
                 const actorEmail = log.actor_email || log.user?.email || null;
                 const actorRole = log.actor_role || log.user?.role?.display_name || log.user?.role?.name || null;

@@ -38,6 +38,10 @@ import {
   TableEmpty,
   TableHead,
   TableHeaderCell,
+  SortableHeaderCell,
+  SortDirection,
+  SortType,
+  sortTableData,
   TableRow,
   TableShell,
 } from "@/components/ui/table";
@@ -270,6 +274,29 @@ export default function IndustryNewsletterPage() {
     () => (Array.isArray(payload?.entity_directory) ? payload.entity_directory : []),
     [payload?.entity_directory]
   );
+
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDirection>(null);
+  const [sortType, setSortType] = useState<SortType>("default");
+
+  const handleSort = (columnKey: string, nextDir: SortDirection, type: SortType = "default") => {
+    setSortField(nextDir ? columnKey : null);
+    setSortDir(nextDir);
+    setSortType(type);
+  };
+
+  const sortedEntityDirectory = useMemo(() => {
+    if (!sortField || !sortDir) return entityDirectory;
+    return sortTableData(entityDirectory, sortField, sortDir, sortType, (item) => {
+      if (sortField === "entity_name") return item.entity_name;
+      if (sortField === "entity_type") return item.entity_type;
+      if (sortField === "mentions_count") return item.mention_count ?? 0;
+      if (sortField === "latest_signal") return item.latest_signal_type || "";
+      if (sortField === "headline") return item.latest_headline || "";
+      if (sortField === "crm_status") return item.matched_lead_id ? "in_crm" : "new";
+      return (item as any)[sortField];
+    });
+  }, [entityDirectory, sortField, sortDir, sortType]);
   const meta = payload?.meta;
 
   const featuredArticles = useMemo(() => articles.slice(0, 2), [articles]);
@@ -1350,22 +1377,70 @@ export default function IndustryNewsletterPage() {
                     className="h-4 w-4 rounded border-border accent-[var(--brand)]"
                   />
                 </TableHeaderCell>
-                <TableHeaderCell>Entity / Brand</TableHeaderCell>
-                <TableHeaderCell>Type</TableHeaderCell>
-                <TableHeaderCell>Mentions</TableHeaderCell>
-                <TableHeaderCell>Latest Signal</TableHeaderCell>
-                <TableHeaderCell>Latest Press Context</TableHeaderCell>
-                <TableHeaderCell>CRM Status</TableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="entity_name"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="alphabet"
+                  onSort={(k, d) => handleSort(k, d, "alphabet")}
+                >
+                  Entity / Brand
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="entity_type"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="alphabet"
+                  onSort={(k, d) => handleSort(k, d, "alphabet")}
+                >
+                  Type
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="mentions_count"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="number"
+                  onSort={(k, d) => handleSort(k, d, "number")}
+                >
+                  Mentions
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="latest_signal"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="alphabet"
+                  onSort={(k, d) => handleSort(k, d, "alphabet")}
+                >
+                  Latest Signal
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="headline"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="alphabet"
+                  onSort={(k, d) => handleSort(k, d, "alphabet")}
+                >
+                  Latest Press Context
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  columnKey="crm_status"
+                  currentSortKey={sortField}
+                  currentSortDir={sortDir}
+                  sortType="status"
+                  onSort={(k, d) => handleSort(k, d, "status")}
+                >
+                  CRM Status
+                </SortableHeaderCell>
                 <TableHeaderCell className="text-right">Action</TableHeaderCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {entityDirectory.length === 0 ? (
+              {sortedEntityDirectory.length === 0 ? (
                 <TableEmpty colSpan={8}>
                   No corporate or brand entities matched your current filter.
                 </TableEmpty>
               ) : (
-                entityDirectory.map((row) => {
+                sortedEntityDirectory.map((row) => {
                   const sig = getSignalMeta(row.latest_signal_type);
                   const isConvertible = !row.matched_lead_id;
                   const isChecked = selectedDirectoryIds.includes(row.representative_entity_id);

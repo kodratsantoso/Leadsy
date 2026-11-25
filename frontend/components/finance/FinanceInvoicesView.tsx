@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { 
   Receipt, Search, RefreshCw, FileText, Download, 
   CheckCircle2, AlertCircle, Clock, 
@@ -21,6 +21,10 @@ import {
   TableBody,
   TableRow,
   TableHeaderCell,
+  SortableHeaderCell,
+  SortDirection,
+  SortType,
+  sortTableData,
   TableCell,
   TableEmpty,
   TableLoading,
@@ -81,6 +85,31 @@ export function FinanceInvoicesView() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [runningScheduler, setRunningScheduler] = useState(false);
   const [schedulerOutput, setSchedulerOutput] = useState<string | null>(null);
+
+  // Sorting State
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDirection>(null);
+  const [sortType, setSortType] = useState<SortType>("default");
+
+  const handleSort = (columnKey: string, nextDir: SortDirection, type: SortType = "default") => {
+    setSortField(nextDir ? columnKey : null);
+    setSortDir(nextDir);
+    setSortType(type);
+  };
+
+  const sortedInvoices = useMemo(() => {
+    if (!sortField || !sortDir) return invoices;
+    return sortTableData(invoices, sortField, sortDir, sortType, (item) => {
+      if (sortField === "invoice_number") return item.invoice_number;
+      if (sortField === "customer") return item.lead?.company_name || "";
+      if (sortField === "term") return item.milestone_name || "";
+      if (sortField === "invoice_date") return item.invoice_date || "";
+      if (sortField === "total_amount") return Number(item.total_amount) || 0;
+      if (sortField === "status") return item.status;
+      if (sortField === "faktur_pajak") return item.nsfp_number || item.faktur_pajak?.nsfp_number || "";
+      return (item as any)[sortField];
+    });
+  }, [invoices, sortField, sortDir, sortType]);
 
   // PDF Preview Modal
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -471,13 +500,73 @@ export function FinanceInvoicesView() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeaderCell>No. Faktur</TableHeaderCell>
-              <TableHeaderCell>Pelanggan & SO</TableHeaderCell>
-              <TableHeaderCell>Termin / Milestone</TableHeaderCell>
-              <TableHeaderCell>Tanggal & Jatuh Tempo</TableHeaderCell>
-              <TableHeaderCell className="text-right">Nilai Tagihan</TableHeaderCell>
-              <TableHeaderCell className="text-center">Status</TableHeaderCell>
-              <TableHeaderCell>Faktur Pajak (DJP)</TableHeaderCell>
+              <SortableHeaderCell
+                columnKey="invoice_number"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                No. Faktur
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="customer"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Pelanggan & SO
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="term"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Termin / Milestone
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="invoice_date"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="date"
+                onSort={(k, d) => handleSort(k, d, "date")}
+              >
+                Tanggal & Jatuh Tempo
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="total_amount"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="number"
+                align="right"
+                onSort={(k, d) => handleSort(k, d, "number")}
+                className="text-right"
+              >
+                Nilai Tagihan
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="status"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="status"
+                align="center"
+                onSort={(k, d) => handleSort(k, d, "status")}
+                className="text-center"
+              >
+                Status
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="faktur_pajak"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Faktur Pajak (DJP)
+              </SortableHeaderCell>
               <TableHeaderCell className="text-right">Aksi</TableHeaderCell>
             </TableRow>
           </TableHead>
@@ -495,7 +584,7 @@ export function FinanceInvoicesView() {
                 </div>
               </TableEmpty>
             ) : (
-              invoices.map((inv) => {
+              sortedInvoices.map((inv) => {
                 const isOverdue = inv.status !== "paid" && new Date(inv.due_date) < new Date();
                 return (
                   <TableRow key={inv.id}>

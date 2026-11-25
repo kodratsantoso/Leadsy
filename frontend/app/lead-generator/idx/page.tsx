@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { throwIfApiError } from "@/lib/apiError";
@@ -33,6 +33,10 @@ import {
   TableCell,
   TableHead,
   TableHeaderCell,
+  SortableHeaderCell,
+  SortDirection,
+  SortType,
+  sortTableData,
   TableRow,
   TableEmpty,
 } from "@/components/ui/table";
@@ -139,6 +143,27 @@ export default function IdxGeneratorPage() {
 
   const companies = data?.data || [];
   const meta = data?.meta;
+
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDirection>(null);
+  const [sortType, setSortType] = useState<SortType>("default");
+
+  const handleSort = (columnKey: string, nextDir: SortDirection, type: SortType = "default") => {
+    setSortField(nextDir ? columnKey : null);
+    setSortDir(nextDir);
+    setSortType(type);
+  };
+
+  const sortedCompanies = useMemo(() => {
+    if (!sortField || !sortDir) return companies;
+    return sortTableData(companies, sortField, sortDir, sortType, (item: any) => {
+      if (sortField === "idx_code") return item.idx_code;
+      if (sortField === "company_name") return item.company_name;
+      if (sortField === "sector") return item.sector || item.listing_board || "";
+      if (sortField === "industry") return item.industry || "";
+      return item[sortField];
+    });
+  }, [companies, sortField, sortDir, sortType]);
 
   const summaryTotal = filters?.summary?.total ?? meta?.cached_companies ?? 957;
   const summaryInLeads = filters?.summary?.in_leads ?? meta?.total_in_leads ?? 35;
@@ -465,10 +490,42 @@ export default function IdxGeneratorPage() {
                   disabled={importableCompanies.length === 0}
                 />
               </TableHeaderCell>
-              <TableHeaderCell>Ticker</TableHeaderCell>
-              <TableHeaderCell>Company</TableHeaderCell>
-              <TableHeaderCell>Sector / Board</TableHeaderCell>
-              <TableHeaderCell>Industry</TableHeaderCell>
+              <SortableHeaderCell
+                columnKey="idx_code"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Ticker
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="company_name"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Company
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="sector"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Sector / Board
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="industry"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Industry
+              </SortableHeaderCell>
               <TableHeaderCell className="text-right">Action</TableHeaderCell>
             </TableRow>
           </TableHead>
@@ -503,7 +560,7 @@ export default function IdxGeneratorPage() {
                 </div>
               </TableEmpty>
             ) : (
-              companies.map((company: any) => (
+              sortedCompanies.map((company: any) => (
                 <TableRow key={company.idx_code}>
                   <TableCell>
                     <input 

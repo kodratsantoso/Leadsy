@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -36,6 +36,10 @@ import {
   TableEmpty,
   TableHead,
   TableHeaderCell,
+  SortableHeaderCell,
+  SortDirection,
+  SortType,
+  sortTableData,
   TableRow,
   TableShell,
 } from "@/components/ui/table";
@@ -158,6 +162,28 @@ export default function DeletedLeadsPage() {
     expired: 0,
     retention_days: retentionDays,
   };
+
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDirection>(null);
+  const [sortType, setSortType] = useState<SortType>("default");
+
+  const handleSort = (columnKey: string, nextDir: SortDirection, type: SortType = "default") => {
+    setSortField(nextDir ? columnKey : null);
+    setSortDir(nextDir);
+    setSortType(type);
+  };
+
+  const sortedLeads = useMemo(() => {
+    if (!sortField || !sortDir) return leads;
+    return sortTableData(leads, sortField, sortDir, sortType, (item) => {
+      if (sortField === "company_name") return item.company_name;
+      if (sortField === "source_type") return item.sources?.[0]?.source_type || "";
+      if (sortField === "deleted_at") return item.deleted_at;
+      if (sortField === "days_left") return item.days_remaining ?? 0;
+      if (sortField === "purge_at") return item.purge_at || "";
+      return (item as any)[sortField];
+    });
+  }, [leads, sortField, sortDir, sortType]);
 
   // Restore Single Lead Mutation
   const restoreMutation = useMutation({
@@ -602,11 +628,51 @@ export default function DeletedLeadsPage() {
                   className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
                 />
               </TableHeaderCell>
-              <TableHeaderCell>Perusahaan & Kontak</TableHeaderCell>
-              <TableHeaderCell>Sumber Asal</TableHeaderCell>
-              <TableHeaderCell>Tanggal Dihapus</TableHeaderCell>
-              <TableHeaderCell>Sisa Waktu Retensi</TableHeaderCell>
-              <TableHeaderCell>Batas Hapus Permanen</TableHeaderCell>
+              <SortableHeaderCell
+                columnKey="company_name"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Perusahaan & Kontak
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="source_type"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="alphabet"
+                onSort={(k, d) => handleSort(k, d, "alphabet")}
+              >
+                Sumber Asal
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="deleted_at"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="date"
+                onSort={(k, d) => handleSort(k, d, "date")}
+              >
+                Tanggal Dihapus
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="days_left"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="number"
+                onSort={(k, d) => handleSort(k, d, "number")}
+              >
+                Sisa Waktu Retensi
+              </SortableHeaderCell>
+              <SortableHeaderCell
+                columnKey="purge_at"
+                currentSortKey={sortField}
+                currentSortDir={sortDir}
+                sortType="date"
+                onSort={(k, d) => handleSort(k, d, "date")}
+              >
+                Batas Hapus Permanen
+              </SortableHeaderCell>
               <TableHeaderCell className="text-right">Aksi</TableHeaderCell>
             </TableRow>
           </TableHead>
@@ -696,7 +762,7 @@ export default function DeletedLeadsPage() {
             {/* Hydrated Rows */}
             {!isLoading &&
               !isError &&
-              leads.map((lead) => {
+              sortedLeads.map((lead) => {
                 const isSelected = selectedIds.includes(lead.id);
                 const primarySource = lead.sources?.[0]?.source_type || "-";
 
