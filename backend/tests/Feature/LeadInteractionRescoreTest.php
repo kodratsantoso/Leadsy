@@ -56,6 +56,30 @@ class LeadInteractionRescoreTest extends TestCase
         });
     }
 
+    public function test_manual_lead_field_update_triggers_automated_rescore(): void
+    {
+        Queue::fake([
+            ScoreLeadJob::class,
+            QualifyLeadJob::class,
+            ICPMatchLeadJob::class,
+            RunLeadIntelligenceJob::class,
+        ]);
+
+        $lead = Lead::create([
+            'company_name' => 'Manual Update Test Co',
+        ]);
+
+        // Update core business field
+        $lead->update([
+            'estimated_closing_amount' => 150000000,
+        ]);
+
+        Queue::assertPushed(ScoreLeadJob::class);
+        Queue::assertPushed(QualifyLeadJob::class);
+        Queue::assertPushed(ICPMatchLeadJob::class);
+        Queue::assertPushed(RunLeadIntelligenceJob::class);
+    }
+
     public function test_save_transcript_analysis_triggers_rescore(): void
     {
         Queue::fake([

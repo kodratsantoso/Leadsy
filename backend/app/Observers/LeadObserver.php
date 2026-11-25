@@ -33,6 +33,16 @@ class LeadObserver
             $this->triggerConfidentialityAssessment($lead);
         }
 
+        // Trigger automated re-scoring and intelligence evaluation when core business fields change
+        $rescoreFields = [
+            'industry_id', 'business_category_id', 'estimated_closing_amount', 
+            'funnel_stage_id', 'qualification_status', 'website', 'address',
+            'company_name', 'brand_name', 'npwp',
+        ];
+        if ($lead->wasChanged($rescoreFields)) {
+            app(\App\Services\Sales\LeadInteractionRescoreService::class)->triggerRescore($lead, 'lead_field_updated');
+        }
+
         // Trigger Lark Minutes fetch & AI processing if meeting link is added/updated
         if ($lead->wasChanged('meeting_link') && !empty($lead->meeting_link)) {
             ProcessLarkMinutesLinkJob::dispatch((string) $lead->id, $lead->meeting_link);
