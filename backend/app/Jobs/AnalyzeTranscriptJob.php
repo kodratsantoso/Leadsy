@@ -17,7 +17,7 @@ class AnalyzeTranscriptJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 3;
+    public $tries = 1;
     public $timeout = 120; // AI calls can take a while
 
     /**
@@ -65,7 +65,10 @@ class AnalyzeTranscriptJob implements ShouldQueue
             // Trigger rescoring and qualification update post-transcript analysis
             app(\App\Services\Sales\LeadInteractionRescoreService::class)->triggerRescore($transcript->lead, 'transcript_analyzed');
         } catch (\Throwable $e) {
-            $transcript->update(['evaluation_status' => 'failed']);
+            $transcript->update([
+                'evaluation_status' => 'failed',
+                'import_error_message' => $e->getMessage(),
+            ]);
             Log::error("AI analysis failed for transcript ID {$transcript->id}: " . $e->getMessage());
             $this->fail($e);
         }

@@ -386,6 +386,11 @@ export function TranscriptsTab({
                       {new Date(tr.recorded_at ?? tr.created_at).toLocaleString()}
                       {tr.file_name ? ` · ${tr.file_name}` : ''}
                     </p>
+                    {tr.evaluation_status === 'failed' && tr.import_error_message && (
+                      <p className="mt-1.5 text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1.5 rounded-lg leading-relaxed">
+                        <span className="font-semibold text-rose-300">AI Error:</span> {tr.import_error_message}
+                      </p>
+                    )}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     {/* Link-based transcript importing state */}
