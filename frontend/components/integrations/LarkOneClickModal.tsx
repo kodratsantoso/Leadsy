@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/apiFetch";
@@ -326,8 +327,15 @@ export function LarkOneClickModal({
                 className="w-full gap-2 py-5 text-sm font-semibold shadow-md"
                 onClick={handleOpenLark}
               >
-                <ExternalLink className="h-4 w-4" />
-                Buka Halaman Otorisasi Lark
+                <Image
+                  src="/lark-logo.png"
+                  alt="Lark Logo"
+                  width={20}
+                  height={20}
+                  className="h-5 w-5 shrink-0 object-contain"
+                />
+                <span>Buka Halaman Otorisasi Lark</span>
+                <ExternalLink className="h-4 w-4 ml-auto" />
               </Button>
 
               <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-muted-foreground">

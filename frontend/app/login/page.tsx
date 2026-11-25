@@ -69,22 +69,27 @@ function MicrosoftIcon({ className = "h-4 w-4" }: { className?: string }) {
 
 function LarkIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M3.2 8.5C3.2 5.46 5.66 3 8.7 3h6.6c3.04 0 5.5 2.46 5.5 5.5v7c0 3.04-2.46 5.5-5.5 5.5H8.7c-3.04 0-5.5-2.46-5.5-5.5v-7z"
-        fill="#00D6B9"
-      />
-      <path d="M8.5 7.5L15.5 12L8.5 16.5V7.5Z" fill="#0052FF" />
-      <path d="M12 9.5L17.5 12L12 14.5V9.5Z" fill="#3370FF" />
-    </svg>
+    <Image
+      src="/lark-logo.png"
+      alt="Lark"
+      width={24}
+      height={24}
+      className={`${className} object-contain shrink-0`}
+      priority
+    />
   );
 }
 
-function LeadsyLogoMark({ className = "h-7 w-7" }: { className?: string }) {
+function LeadsyLogoMark({ className = "h-8 w-8" }: { className?: string }) {
   return (
-    <div className={`relative flex items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 p-1.5 shadow-md shadow-orange-500/20 ${className}`}>
-      <TrendingUp className="h-full w-full text-white" strokeWidth={2.5} />
-    </div>
+    <Image
+      src="/leadsy-logo.png"
+      alt="Leadsy"
+      width={80}
+      height={80}
+      className={`${className} object-contain`}
+      priority
+    />
   );
 }
 
@@ -424,8 +429,8 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute -bottom-32 -right-32 h-[450px] w-[450px] rounded-full bg-amber-500/10 blur-[140px]" />
 
         {/* Top Header Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <LeadsyLogoMark className="h-8 w-8" />
+        <div className="relative z-10 flex items-center gap-2.5">
+          <LeadsyLogoMark className="h-10 w-10 drop-shadow-md" />
           <span className="text-2xl font-bold tracking-tight text-white flex items-center">
             Leadsy
           </span>
@@ -651,7 +656,7 @@ export default function LoginPage() {
           {/* Form Header */}
           <div className="text-center space-y-2">
             <div className="inline-flex items-center justify-center mb-1">
-              <LeadsyLogoMark className="h-9 w-9" />
+              <LeadsyLogoMark className="h-16 w-16 drop-shadow-lg" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-white">
               {mode === "login" ? "Masuk ke Leadsy" : "Verifikasi Dua Langkah (2FA)"}
