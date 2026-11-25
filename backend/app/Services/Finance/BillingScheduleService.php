@@ -85,9 +85,28 @@ class BillingScheduleService
 
                     $trigger = $conf['trigger'] ?? 'calendar_date';
                     $daysAfter = (int)($conf['days_after'] ?? 0);
-                    
-                    if ($paymentTerm->frequency === 'monthly') {
-                        $schedDate = $startDate->copy()->addMonths($idx)->toDateString();
+                    $monthOffset = isset($conf['month_offset']) ? (int)$conf['month_offset'] : null;
+                    $billingRule = $conf['billing_rule'] ?? null; // 'start_of_month', 'contract_day', 'custom_days'
+
+                    if ($billingRule === 'start_of_month') {
+                        $offset = $monthOffset !== null ? $monthOffset : ($paymentTerm->frequency === 'quarterly' ? $idx * 3 : ($paymentTerm->frequency === 'semi_annual' ? $idx * 6 : $idx));
+                        $schedDate = $startDate->copy()->addMonths($offset)->startOfMonth()->toDateString();
+                    } elseif ($billingRule === 'contract_day') {
+                        $offset = $monthOffset !== null ? $monthOffset : ($paymentTerm->frequency === 'quarterly' ? $idx * 3 : ($paymentTerm->frequency === 'semi_annual' ? $idx * 6 : $idx));
+                        $schedDate = $startDate->copy()->addMonths($offset)->toDateString();
+                    } elseif ($paymentTerm->frequency === 'monthly') {
+                        $offset = $monthOffset !== null ? $monthOffset : $idx;
+                        $schedDate = $startDate->copy()->addMonths($offset)->toDateString();
+                    } elseif ($paymentTerm->frequency === 'quarterly') {
+                        // Quarterly default: autogenerate at start of quarter month depending on contract start date
+                        $offset = $monthOffset !== null ? $monthOffset : ($idx * 3);
+                        $schedDate = $startDate->copy()->addMonths($offset)->startOfMonth()->toDateString();
+                    } elseif ($paymentTerm->frequency === 'semi_annual') {
+                        // Semi-annual default: every 6 months
+                        $offset = $monthOffset !== null ? $monthOffset : ($idx * 6);
+                        $schedDate = $startDate->copy()->addMonths($offset)->toDateString();
+                    } elseif ($monthOffset !== null) {
+                        $schedDate = $startDate->copy()->addMonths($monthOffset)->toDateString();
                     } else {
                         $schedDate = $startDate->copy()->addDays($daysAfter)->toDateString();
                     }

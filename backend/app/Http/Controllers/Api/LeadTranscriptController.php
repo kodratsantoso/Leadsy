@@ -86,6 +86,7 @@ class LeadTranscriptController extends Controller
             'file_size' => $fileSize,
             'recorded_at' => $data['recorded_at'] ?? now(),
             'evaluation_status' => 'pending',
+            'import_status' => $data['source_type'] === 'link' ? 'PENDING' : 'TRANSCRIPT_IMPORTED',
             'meeting_type' => $data['meeting_type'] ?? 'General',
         ]);
 

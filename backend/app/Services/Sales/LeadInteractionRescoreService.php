@@ -26,6 +26,18 @@ class LeadInteractionRescoreService
             return;
         }
 
+        // Debounce: prevent duplicate queue barrage if triggered multiple times within 15 seconds for the same lead,
+        // unless it is an explicit high-priority trigger like transcript analysis.
+        $cacheKey = "lead_rescore_cooldown:{$lead->id}";
+        $isHighPriority = in_array($source, ['transcript_analysis', 'transcript_analyzed', 'manual_run'], true);
+
+        if (! $isHighPriority && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            Log::info("[LeadInteractionRescore] Cooldown active for Lead {$lead->id}. Skipping duplicate rescore from {$source}.");
+            return;
+        }
+
+        \Illuminate\Support\Facades\Cache::put($cacheKey, true, now()->addSeconds(15));
+
         Log::info("[LeadInteractionRescore] Triggering automated rescore for Lead {$lead->id} (Source: {$source})");
 
         if ($logActivity) {

@@ -350,7 +350,7 @@ export function TranscriptsTab({
                           </Badge>
                         )}
                       <Badge variant="neutral">{TRANSCRIPT_SOURCES[tr.source_type] ?? tr.source_type}</Badge>
-                      {tr.import_status && !['COMPLETED', 'TRANSCRIPT_IMPORTED'].includes(tr.import_status) && (
+                      {tr.source_type === 'link' && tr.import_status && !['COMPLETED', 'TRANSCRIPT_IMPORTED'].includes(tr.import_status) && (
                         <Badge variant={tr.import_status === 'FAILED' ? 'danger' : 'warning'}>
                           {tr.import_status === 'FAILED' ? 'Import Failed' : `Importing: ${tr.import_status}`}
                         </Badge>

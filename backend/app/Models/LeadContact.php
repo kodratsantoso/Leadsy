@@ -68,6 +68,21 @@ class LeadContact extends Model
         'is_primary' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function (LeadContact $contact) {
+            if ($contact->lead && ($contact->is_primary || !empty($contact->title) || !empty($contact->email))) {
+                app(\App\Services\Sales\LeadInteractionRescoreService::class)->triggerRescore($contact->lead, 'contact_saved');
+            }
+        });
+
+        static::deleted(function (LeadContact $contact) {
+            if ($contact->lead) {
+                app(\App\Services\Sales\LeadInteractionRescoreService::class)->triggerRescore($contact->lead, 'contact_deleted');
+            }
+        });
+    }
+
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class);

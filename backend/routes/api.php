@@ -411,6 +411,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('finance/payment-terms', [\App\Http\Controllers\Api\PaymentTermController::class, 'index']);
     Route::post('finance/payment-terms', [\App\Http\Controllers\Api\PaymentTermController::class, 'store'])->middleware('permission:leads.edit');
     Route::put('finance/payment-terms/{paymentTerm}', [\App\Http\Controllers\Api\PaymentTermController::class, 'update'])->middleware('permission:leads.edit');
+    Route::delete('finance/payment-terms/{paymentTerm}', [\App\Http\Controllers\Api\PaymentTermController::class, 'destroy'])->middleware('permission:leads.edit');
 
     // Finance Hub Management Console Endpoints
     Route::get('finance/overview', [\App\Http\Controllers\Api\FinanceHubController::class, 'getOverview']);

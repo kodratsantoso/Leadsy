@@ -81,4 +81,30 @@ class PaymentTermController extends Controller
             'data' => $paymentTerm,
         ]);
     }
+
+    /**
+     * Delete or deactivate a payment term preset.
+     */
+    public function destroy(PaymentTerm $paymentTerm): JsonResponse
+    {
+        $inUseQuotation = \App\Models\LeadQuotation::where('payment_term_id', $paymentTerm->id)->exists();
+        $inUseOrder = \App\Models\LeadSalesOrder::where('payment_term_id', $paymentTerm->id)->exists();
+
+        if ($inUseQuotation || $inUseOrder) {
+            $paymentTerm->update(['is_active' => false]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Payment Term ini sedang digunakan pada penawaran/order aktif, sehingga statusnya dinonaktifkan (diarsipkan).',
+                'data' => $paymentTerm,
+            ]);
+        }
+
+        $paymentTerm->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Payment Term berhasil dihapus.',
+        ]);
+    }
 }
