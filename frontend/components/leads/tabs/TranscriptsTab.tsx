@@ -355,8 +355,8 @@ export function TranscriptsTab({
                           {tr.import_status === 'FAILED' ? 'Import Failed' : `Importing: ${tr.import_status}`}
                         </Badge>
                       )}
-                      <Badge variant={tr.evaluation_status === 'evaluated' ? 'success' : 'warning'}>
-                        {tr.evaluation_status}
+                      <Badge variant={tr.evaluation_status === 'evaluated' ? 'success' : tr.evaluation_status === 'failed' ? 'danger' : 'warning'}>
+                        {tr.evaluation_status === 'pending' ? 'Queued' : tr.evaluation_status === 'analyzing' ? 'Analyzing...' : tr.evaluation_status}
                       </Badge>
                       {tr.documents?.length > 0 && (
                         <Badge variant={tr.documents[0].generation_status === 'success' ? 'success' : 'neutral'}>
@@ -431,13 +431,23 @@ export function TranscriptsTab({
                         }}
                         disabled={
                           (evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) ||
+                          evaluatingTranscriptId === tr.id ||
                           tr.evaluation_status === 'analyzing' ||
+                          tr.evaluation_status === 'pending' ||
                           !tr.transcript_text?.trim()
                         }
-                        title={!tr.transcript_text?.trim() ? 'Add transcript text before AI analysis' : undefined}
+                        title={
+                          tr.evaluation_status === 'pending' || evaluatingTranscriptId === tr.id
+                            ? 'AI analysis is queued and running automatically in the background'
+                            : !tr.transcript_text?.trim()
+                              ? 'Add transcript text before AI analysis'
+                              : undefined
+                        }
                       >
                         {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) ||
-                        tr.evaluation_status === 'analyzing' ? (
+                        evaluatingTranscriptId === tr.id ||
+                        tr.evaluation_status === 'analyzing' ||
+                        tr.evaluation_status === 'pending' ? (
                           <Loader2 className="h-3 w-3 animate-spin mr-1" />
                         ) : (
                           <Sparkles className="h-3 w-3 mr-1" />
@@ -445,9 +455,11 @@ export function TranscriptsTab({
                         {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) ||
                         tr.evaluation_status === 'analyzing'
                           ? 'Analysing...'
-                          : tr.evaluation_status === 'failed'
-                            ? 'Retry Analysis'
-                            : 'Analyse with AI'}
+                          : tr.evaluation_status === 'pending' || evaluatingTranscriptId === tr.id
+                            ? 'AI Queued...'
+                            : tr.evaluation_status === 'failed'
+                              ? 'Retry Analysis'
+                              : 'Analyse with AI'}
                       </Button>
                     ) : null}
                     {evaluation && (

@@ -1703,6 +1703,19 @@ export default function LeadDetailPage() {
     activity.budget || activity.authority || activity.needs || activity.timeline || activity.competitor
   );
 
+  useEffect(() => {
+    if (evaluatingTranscriptId && Array.isArray(transcriptsList) && transcriptsList.length > 0) {
+      const active = transcriptsList.find((t: any) => t.id === evaluatingTranscriptId);
+      if (active && (active.evaluation_status === 'evaluated' || active.evaluation_status === 'failed')) {
+        setEvaluatingTranscriptId(null);
+        if (active.evaluation_status === 'evaluated') {
+          setExpandedEvalId(active.id);
+          refetchEvaluations();
+        }
+      }
+    }
+  }, [transcriptsList, evaluatingTranscriptId, refetchEvaluations]);
+
   const ACTIVITY_TYPES = [
     'Follow Up', 'Meeting', 'Demo', 'Proposal Sent', 'Negotiation',
     'WhatsApp', 'Call', 'Email', 'Internal Note', 'Site Visit',
