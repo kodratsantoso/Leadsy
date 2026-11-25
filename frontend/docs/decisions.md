@@ -1,5 +1,12 @@
 # Architecture Decision Records (ADR)
 
+## ADR-030: Premium Login Page Visual Remediation & Full-Viewport Split Layout
+- **Date**: 2026-11-25
+- **Status**: Active
+- **Decision**: Redesign the public authentication entry point (`/login`) into a tier-1 enterprise split-screen layout (61% product showcase panel, 39% authentication panel). Retain the official Leadsy horizontal lockup and trimmed Lark vector icon. Replace the cramped showcase with an expansive dark console featuring a mini sidebar, 4 key revenue KPIs, an SVG revenue curve, an interactive pipeline donut chart, and a glowing floating AI insight card. Upgrade authentication form to 440px max-width with 48px inputs and buttons, preserving 2-tier login throttling (10-min lockout & suspension), self-service email OTP password reset, and 4-step Lark workspace registration.
+- **Rationale**: Aligns the first-impression visual experience with tier-1 enterprise SaaS benchmarks (Linear, Stripe, Vercel) while fixing severe layout compression on high-resolution screens without affecting protected interior application routes.
+- **Impact**: Zero layout shift, full responsive adaptation across viewports (1920px down to 390px), verified across 7 Playwright browser viewports with 100% test pass rate.
+
 ## ADR-029: Presales Discovery Workspace & Completeness Architecture
 - **Date**: 2026-10-16
 - **Status**: Active

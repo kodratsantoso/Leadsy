@@ -11,6 +11,16 @@
 
 ## Phase 2: Core Features (In Progress 🔧)
 
+### UI/UX & Authentication Overhaul (Completed ✅)
+- [x] Premium Login Page visual remediation per target reference mockup
+- [x] Full-viewport split-screen layout (61% showcase / 39% auth) balanced from 1920px to 390px
+- [x] Official Leadsy horizontal lockup and trimmed official Lark icon integration
+- [x] Expanded product showcase console with mini-nav, 4 KPIs, SVG curve, and pipeline donut
+- [x] 2-Tier login rate limiting & suspension with live countdown timer
+- [x] Self-service "Lupa Password" via 6-digit email OTP
+- [x] Admin 1-click user unlock in Users & Roles settings
+- [x] Table header sorting state persistence to localStorage & URL
+
 ### Backend Services (Completed ✅)
 - [x] DeduplicationService — 4-tier priority matching (domain→name+location→email→phone)
 - [x] AiOrchestrationService — Multi-provider (OpenAI/Anthropic/Google) with fallback, cost tracking
