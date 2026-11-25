@@ -22,6 +22,10 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    public const ROUND1_MAX_ATTEMPTS = 3;
+    public const ROUND1_LOCKOUT_SECONDS = 600; // 10 minutes
+    public const ROUND2_MAX_ATTEMPTS = 3;
+
     /** POST /api/auth/login */
     public function login(Request $request): JsonResponse
     {
@@ -30,17 +34,102 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $email = strtolower(trim($request->email));
 
+        // 1. Check if user exists and is already suspended / inactive
+        $user = User::where('email', $email)->first();
+        if ($user && ! $user->is_active) {
+            return response()->json([
+                'status' => 'account_suspended',
+                'message' => 'Akun Anda telah ditangguhkan (suspended) atau dinonaktifkan. Silakan hubungi Administrator untuk memulihkan akses Anda.',
+            ], 403);
+        }
+
+        // 2. Check if currently in Round 1 Lockout (10 minutes)
+        $lockoutUntil = Cache::get("login_lockout:round1:{$email}");
+        if ($lockoutUntil && $lockoutUntil > now()->timestamp) {
+            $diffSeconds = (int) ($lockoutUntil - now()->timestamp);
+            $minutes = (int) ceil($diffSeconds / 60);
+
+            return response()->json([
+                'status' => 'temporarily_locked',
+                'message' => "Terlalu banyak percobaan login gagal. Akun Anda dikunci sementara selama 10 menit. Silakan coba lagi dalam {$minutes} menit.",
+                'retry_after_seconds' => $diffSeconds,
+            ], 429);
+        }
+
+        // 3. Verify credentials
         if (! $user || ! Hash::check($request->password, $user->password)) {
-            AuditService::logFailedLogin($request->email);
+            AuditService::logFailedLogin($email);
 
-            return response()->json(['message' => 'Invalid credentials'], 401);
+            $currentRound = (int) Cache::get("login_round:{$email}", 1);
+
+            if ($currentRound === 1) {
+                $attempts = (int) Cache::get("login_attempts:round1:{$email}", 0) + 1;
+                Cache::put("login_attempts:round1:{$email}", $attempts, now()->addHours(24));
+
+                if ($attempts < self::ROUND1_MAX_ATTEMPTS) {
+                    $remaining = self::ROUND1_MAX_ATTEMPTS - $attempts;
+
+                    return response()->json([
+                        'status' => 'invalid_credentials',
+                        'message' => "Email atau password tidak sesuai. Sisa percobaan: {$remaining} kali sebelum akun dikunci sementara selama 10 menit.",
+                        'attempts_left' => $remaining,
+                        'round' => 1,
+                    ], 401);
+                }
+
+                // 3rd failure in Round 1: Trigger 10-minute lockout and advance to Round 2
+                $lockoutTarget = now()->addSeconds(self::ROUND1_LOCKOUT_SECONDS)->timestamp;
+                Cache::put("login_lockout:round1:{$email}", $lockoutTarget, self::ROUND1_LOCKOUT_SECONDS);
+                Cache::put("login_round:{$email}", 2, now()->addHours(24));
+
+                return response()->json([
+                    'status' => 'temporarily_locked',
+                    'message' => 'Anda telah gagal login sebanyak 3 kali. Demi keamanan akun, Anda dikunci sementara selama 10 menit.',
+                    'retry_after_seconds' => self::ROUND1_LOCKOUT_SECONDS,
+                    'round' => 1,
+                ], 429);
+            }
+
+            // Current round is 2 (after the 10-minute cooldown has passed)
+            $attempts = (int) Cache::get("login_attempts:round2:{$email}", 0) + 1;
+            Cache::put("login_attempts:round2:{$email}", $attempts, now()->addHours(24));
+
+            if ($attempts < self::ROUND2_MAX_ATTEMPTS) {
+                $remaining = self::ROUND2_MAX_ATTEMPTS - $attempts;
+
+                return response()->json([
+                    'status' => 'invalid_credentials',
+                    'message' => "Email atau password tidak sesuai (Percobaan Tahap ke-2). Sisa percobaan: {$remaining} kali sebelum akun Anda ditangguhkan (suspended) secara permanen.",
+                    'attempts_left' => $remaining,
+                    'round' => 2,
+                ], 401);
+            }
+
+            // 3rd failure in Round 2 (6th failure overall): SUSPEND ACCOUNT!
+            if ($user) {
+                $user->update(['is_active' => false]);
+                AuditService::log('user_suspended_login_failures', 'auth', $user, null, [
+                    'email' => $email,
+                    'reason' => 'Exceeded 6 failed login attempts across two rounds',
+                ]);
+            }
+
+            Cache::put("login_suspended:{$email}", true, now()->addDays(30));
+
+            return response()->json([
+                'status' => 'account_suspended',
+                'message' => 'Akun Anda telah ditangguhkan (suspended) karena gagal login 3 kali pada percobaan tahap kedua. Silakan hubungi Administrator untuk memulihkan akses Anda.',
+            ], 403);
         }
 
-        if (! $user->is_active) {
-            return response()->json(['message' => 'Account deactivated'], 403);
-        }
+        // 4. Successful login: Clear all failure caches
+        Cache::forget("login_attempts:round1:{$email}");
+        Cache::forget("login_lockout:round1:{$email}");
+        Cache::forget("login_attempts:round2:{$email}");
+        Cache::forget("login_round:{$email}");
+        Cache::forget("login_suspended:{$email}");
 
         if ($user->two_factor_enabled) {
             $tempToken = $user->createToken('2fa_token', ['2fa'])->plainTextToken;
@@ -57,9 +146,18 @@ class AuthController extends Controller
 
         AuditService::log('login', 'auth', $user);
 
+        // Load tenant / workspace automatically
+        $user->load(['role.permissions', 'tenant']);
+        $tenant = $user->tenant;
+
         return response()->json([
             'token' => $token,
-            'user' => $user->load('role.permissions'),
+            'user' => $user,
+            'workspace' => $tenant ? [
+                'id' => $tenant->id,
+                'name' => $tenant->name,
+                'slug' => $tenant->slug,
+            ] : null,
         ]);
     }
 

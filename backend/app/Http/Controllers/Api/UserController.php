@@ -77,6 +77,17 @@ class UserController extends Controller
         }
 
         $user->update($data);
+
+        // When admin reactivates a user, reset any login lockouts or suspension cache
+        if (isset($data['is_active']) && $data['is_active']) {
+            $email = strtolower(trim($user->email));
+            \Illuminate\Support\Facades\Cache::forget("login_attempts:round1:{$email}");
+            \Illuminate\Support\Facades\Cache::forget("login_lockout:round1:{$email}");
+            \Illuminate\Support\Facades\Cache::forget("login_attempts:round2:{$email}");
+            \Illuminate\Support\Facades\Cache::forget("login_round:{$email}");
+            \Illuminate\Support\Facades\Cache::forget("login_suspended:{$email}");
+        }
+
         AuditService::logUpdated('users', $user, $original);
 
         return response()->json(['data' => $user->load(['role', 'directManager:id,name,email'])]);

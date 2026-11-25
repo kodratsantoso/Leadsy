@@ -20,6 +20,19 @@ class LeadInteractionRescoreTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \App\Models\Tenant::firstOrCreate(['slug' => 'test-rescore-tenant'], ['name' => 'Test Tenant', 'is_active' => true]);
+        \App\Support\TenantContext::clear();
+    }
+
+    protected function tearDown(): void
+    {
+        \App\Support\TenantContext::clear();
+        parent::tearDown();
+    }
+
     public function test_activity_logging_triggers_automated_rescore(): void
     {
         Queue::fake([

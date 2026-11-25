@@ -7,6 +7,7 @@ use App\Models\LeadSalesOrder;
 use App\Models\PaymentTerm;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Finance\BillingScheduleService;
 use Carbon\Carbon;
@@ -22,15 +23,25 @@ class PaymentTermCrudAndScheduleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \App\Support\TenantContext::clear();
 
         $role = Role::firstOrCreate(['name' => 'superadmin'], ['display_name' => 'Superadmin', 'is_active' => true]);
         $p1 = Permission::firstOrCreate(['name' => 'leads.view'], ['module' => 'leads', 'display_name' => 'View Leads']);
         $p2 = Permission::firstOrCreate(['name' => 'leads.edit'], ['module' => 'leads', 'display_name' => 'Edit Leads']);
         $role->permissions()->syncWithoutDetaching([$p1->id, $p2->id]);
 
+        $tenant = Tenant::firstOrCreate(['slug' => 'test-tenant'], ['name' => 'Test Tenant', 'is_active' => true]);
+
         $this->user = User::factory()->create([
             'role_id' => $role->id,
+            'tenant_id' => $tenant->id,
         ]);
+    }
+
+    protected function tearDown(): void
+    {
+        \App\Support\TenantContext::clear();
+        parent::tearDown();
     }
 
     public function test_can_create_payment_term_with_quarterly_start_of_month_installments()
@@ -67,6 +78,7 @@ class PaymentTermCrudAndScheduleTest extends TestCase
     public function test_can_update_and_delete_payment_term()
     {
         $term = PaymentTerm::create([
+            'tenant_id' => $this->user->tenant_id,
             'name' => 'Tempo Bulanan 12x',
             'code' => 'TOP-M-TEST',
             'term_type' => 'calendar',
