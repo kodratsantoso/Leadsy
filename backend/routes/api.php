@@ -88,6 +88,8 @@ Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::post('send-otp', [AuthController::class, 'sendOtp'])->middleware('throttle:3,1');
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:3,1');
+    Route::post('forgot-password/send-otp', [AuthController::class, 'sendPasswordResetOtp'])->middleware('throttle:5,1');
+    Route::post('forgot-password/verify-and-reset', [AuthController::class, 'verifyOtpAndResetPassword'])->middleware('throttle:5,1');
     Route::get('lark/tenants', [AuthController::class, 'getLarkTenants']);
     Route::get('lark/auth-url', [AuthController::class, 'getLarkAuthUrl']);
     Route::post('lark/callback', [AuthController::class, 'handleLarkCallback']);
@@ -818,6 +820,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('whatsapp/sync-rules', [WhatsAppController::class, 'updateSyncRules'])->middleware('permission:whatsapp.personal');
 
     // Users & Roles — restricted to admin
+    Route::post('users/{user}/unlock', [UserController::class, 'unlock'])->middleware('permission:users.manage');
     Route::apiResource('users', UserController::class)->middleware('permission:users.manage');
     Route::post('users/{user}/signature', [UserController::class, 'uploadSignature'])->middleware('permission:users.manage');
     Route::delete('users/{user}/signature', [UserController::class, 'deleteSignature'])->middleware('permission:users.manage');

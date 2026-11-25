@@ -254,6 +254,92 @@ class AuthController extends Controller
         ], 201);
     }
 
+    /** POST /api/auth/forgot-password/send-otp */
+    public function sendPasswordResetOtp(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $email = strtolower(trim($data['email']));
+        $user = User::where('email', $email)->first();
+
+        // Generate 6-digit numeric OTP
+        $otp = (string) random_int(100000, 999999);
+        \Illuminate\Support\Facades\Cache::put("pwd_reset_otp:{$email}", $otp, now()->addMinutes(10));
+
+        \Illuminate\Support\Facades\Log::info("Password reset OTP for {$email}: {$otp}");
+
+        // If user exists and email can be sent
+        if ($user) {
+            try {
+                \Illuminate\Support\Facades\Mail::raw(
+                    "Halo {$user->name},\n\nKode verifikasi OTP untuk reset kata sandi akun Leadsy Anda adalah: {$otp}\n\nKode ini berlaku selama 10 menit. Jangan berikan kode ini kepada siapapun demi keamanan akun Anda.\n\nSalam,\nTim Keamanan Leadsy",
+                    function ($message) use ($email) {
+                        $message->to($email)->subject('Kode Reset Kata Sandi Leadsy');
+                    }
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Could not dispatch password reset email to {$email}: " . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Jika email {$email} terdaftar, kode verifikasi OTP 6-digit telah dikirimkan (berlaku 10 menit).",
+            'debug_otp' => app()->environment(['local', 'testing']) ? $otp : null,
+        ]);
+    }
+
+    /** POST /api/auth/forgot-password/verify-and-reset */
+    public function verifyOtpAndResetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+            'otp' => 'required|string|size:6',
+            'password' => ['required', 'string', 'min:8', SecuritySetting::resolve(null)->passwordRule()],
+        ]);
+
+        $email = strtolower(trim($data['email']));
+        $cachedOtp = \Illuminate\Support\Facades\Cache::get("pwd_reset_otp:{$email}");
+
+        if (! $cachedOtp || $cachedOtp !== trim($data['otp'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Kode OTP verifikasi tidak valid atau sudah kadaluarsa. Silakan minta kode baru.',
+            ], 422);
+        }
+
+        $user = User::where('email', $email)->first();
+        if (! $user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Akun pengguna tidak ditemukan.',
+            ], 404);
+        }
+
+        // Update password and activate user
+        $user->update([
+            'password' => $data['password'],
+            'is_active' => true,
+        ]);
+
+        // Clear all lockout and suspension states for this email
+        \Illuminate\Support\Facades\Cache::forget("login_attempts:round1:{$email}");
+        \Illuminate\Support\Facades\Cache::forget("login_lockout:round1:{$email}");
+        \Illuminate\Support\Facades\Cache::forget("login_attempts:round2:{$email}");
+        \Illuminate\Support\Facades\Cache::forget("login_round:{$email}");
+        \Illuminate\Support\Facades\Cache::forget("login_suspended:{$email}");
+        \Illuminate\Support\Facades\Cache::forget("pwd_reset_otp:{$email}");
+
+        AuditService::log('password_reset_via_otp', 'auth', $user);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Kata sandi berhasil diperbarui. Silakan masuk menggunakan kata sandi baru Anda.',
+        ]);
+    }
+
     /** POST /api/auth/logout */
     public function logout(Request $request): JsonResponse
     {

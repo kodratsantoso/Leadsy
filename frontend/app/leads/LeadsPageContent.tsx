@@ -672,15 +672,38 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const [showFilters, setShowFilters] = useState(false);
   const [minScore, setMinScore] = useState(searchParams.get("min_score") ?? "");
   const [maxScore, setMaxScore] = useState(searchParams.get("max_score") ?? "");
-  const [sortField, setSortField] = useState<string>(searchParams.get("sort") ?? "");
-  const [sortDir, setSortDir] = useState<SortDirection>(
-    (searchParams.get("dir") as SortDirection) ?? null
-  );
+  const [sortField, setSortField] = useState<string>(() => {
+    const urlSort = searchParams.get("sort");
+    if (urlSort) return urlSort;
+    if (typeof window !== "undefined") {
+      return window.localStorage.getItem("leads_table_sort_field") || "";
+    }
+    return "";
+  });
+  const [sortDir, setSortDir] = useState<SortDirection>(() => {
+    const urlDir = searchParams.get("dir") as SortDirection;
+    if (urlDir) return urlDir;
+    if (typeof window !== "undefined") {
+      const savedDir = window.localStorage.getItem("leads_table_sort_dir");
+      return (savedDir as SortDirection) || null;
+    }
+    return null;
+  });
 
   const handleSort = (columnKey: string, nextDir: SortDirection) => {
-    setSortField(nextDir ? columnKey : "");
+    const nextField = nextDir ? columnKey : "";
+    setSortField(nextField);
     setSortDir(nextDir);
     setPage(1);
+    if (typeof window !== "undefined") {
+      if (nextField && nextDir) {
+        window.localStorage.setItem("leads_table_sort_field", nextField);
+        window.localStorage.setItem("leads_table_sort_dir", nextDir);
+      } else {
+        window.localStorage.removeItem("leads_table_sort_field");
+        window.localStorage.removeItem("leads_table_sort_dir");
+      }
+    }
   };
 
   // Keep the current filters mirrored into the URL query string — filters

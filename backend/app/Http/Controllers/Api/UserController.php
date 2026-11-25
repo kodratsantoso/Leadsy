@@ -18,8 +18,40 @@ class UserController extends Controller
 {
     public function index(): JsonResponse
     {
+        $users = User::with(['role', 'directManager:id,name,email'])->orderBy('name')->get();
+
+        $users->transform(function ($u) {
+            $email = strtolower(trim($u->email));
+            $isLockedRound1 = \Illuminate\Support\Facades\Cache::has("login_lockout:round1:{$email}");
+            $isSuspendedRound2 = \Illuminate\Support\Facades\Cache::has("login_suspended:{$email}");
+            $u->is_locked = $isLockedRound1 || $isSuspendedRound2;
+            $u->lockout_reason = $isSuspendedRound2 ? 'brute_force_suspended' : ($isLockedRound1 ? 'temporary_locked' : null);
+            return $u;
+        });
+
         return response()->json([
-            'data' => User::with(['role', 'directManager:id,name,email'])->orderBy('name')->get(),
+            'data' => $users,
+        ]);
+    }
+
+    public function unlock(User $user): JsonResponse
+    {
+        $email = strtolower(trim($user->email));
+        \Illuminate\Support\Facades\Cache::forget("login_attempts:round1:{$email}");
+        \Illuminate\Support\Facades\Cache::forget("login_lockout:round1:{$email}");
+        \Illuminate\Support\Facades\Cache::forget("login_attempts:round2:{$email}");
+        \Illuminate\Support\Facades\Cache::forget("login_round:{$email}");
+        \Illuminate\Support\Facades\Cache::forget("login_suspended:{$email}");
+        \Illuminate\Support\Facades\Cache::forget("pwd_reset_otp:{$email}");
+
+        $user->update(['is_active' => true]);
+
+        AuditService::logUpdated('users', $user, ['is_active' => false], ['is_active' => true, 'unlocked_by_admin' => true]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Akses akun {$user->name} berhasil dipulihkan (unlocked).",
+            'data' => $user->load(['role', 'directManager:id,name,email']),
         ]);
     }
 

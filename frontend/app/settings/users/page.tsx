@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2, Upload } from "lucide-react";
+import { Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2, Upload, KeyRound, ShieldAlert } from "lucide-react";
 
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +53,8 @@ type AppUser = {
   target_period?: "weekly" | "monthly" | "quarterly" | "yearly" | null;
   target_revenue?: string | number | null;
   is_active: boolean;
+  is_locked?: boolean;
+  lockout_reason?: string | null;
   role?: AppRole | null;
   role_id?: number | null;
   tier_level?: string | null;
@@ -289,6 +291,24 @@ export default function SettingsUsersPage() {
     },
   });
 
+  const unlockUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const response = await apiFetch(`/users/${userId}/unlock`, { method: "POST" });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || "Gagal membuka kunci akun");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setFeedback(data.message || "Akses akun berhasil dipulihkan (unlocked).");
+    },
+    onError: (err: Error) => {
+      setFeedback(`Gagal unlock: ${err.message}`);
+    },
+  });
+
   const saveRoleMutation = useMutation({
     mutationFn: async (payload: Record<string, unknown>) => {
       const url = editingRole ? `/roles/${editingRole.id}` : "/roles";
@@ -515,22 +535,45 @@ export default function SettingsUsersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.is_active ? "success" : "danger"}>
-                        {user.is_active ? (
-                          <>
-                            <ToggleRight className="h-3.5 w-3.5" />
-                            Active
-                          </>
-                        ) : (
-                          <>
-                            <ToggleLeft className="h-3.5 w-3.5" />
-                            Inactive
-                          </>
-                        )}
-                      </Badge>
+                      {user.is_locked ? (
+                        <Badge variant="warning" className="gap-1">
+                          <ShieldAlert className="h-3.5 w-3.5" />
+                          Terkunci (Lockout)
+                        </Badge>
+                      ) : (
+                        <Badge variant={user.is_active ? "success" : "danger"}>
+                          {user.is_active ? (
+                            <>
+                              <ToggleRight className="h-3.5 w-3.5" />
+                              Active
+                            </>
+                          ) : (
+                            <>
+                              <ToggleLeft className="h-3.5 w-3.5" />
+                              Inactive
+                            </>
+                          )}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
+                        {(user.is_locked || !user.is_active) && (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => unlockUserMutation.mutate(user.id)}
+                            disabled={unlockUserMutation.isPending}
+                            tooltip="Buka Kunci Akun (1-Click)"
+                            className="text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                          >
+                            {unlockUserMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <KeyRound className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon-sm"
