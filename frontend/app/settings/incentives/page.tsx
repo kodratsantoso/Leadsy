@@ -198,9 +198,9 @@ export default function IncentiveSettingsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6 w-full max-w-7xl mx-auto">
+    <div className="space-y-6 p-6 lg:p-8 w-full">
       {/* Header Bar */}
-      <Card className="border-border shadow-sm">
+      <Card className="border-border shadow-sm w-full">
         <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4">
           <div className="space-y-1">
             <BackToSettings />
@@ -1208,7 +1208,7 @@ export default function IncentiveSettingsPage() {
       {/* REAL-TIME SIMULATION MODAL */}
       {showSimModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-3xl rounded-xl border border-border bg-card shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-5xl rounded-xl border border-border bg-card shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-border p-4 bg-muted/20">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
