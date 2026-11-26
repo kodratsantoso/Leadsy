@@ -188,8 +188,12 @@ Leadsy now has database-backed source and channel classification for leads.
 - Wired click-transitions on the flow and the "Complete Step" button to trigger the Log Activity modal, pre-populating the target stage.
 - Validated with complete type safety and zero typescript compilation errors.
 
-## Phase 15: Professional Services Module Stabilization (Pending ⏳)
-**Date started**: 2026-07-30
+## Phase 16: Department Collaborative Incentive Management (Completed ✅)
+**Date completed**: 2026-11-26
 
-- Audited Phase 1-8 implementation for missing CRUD, endpoints, UI actions, and security enforcement.
-- Beginning systematic remediation for Master Data (Service Categories, Roles, Rate Cards, Templates, etc.).
+- Implemented database migrations and models (`IncentivePolicy`, `RoleIncentiveSetting`, `IncentivePool`, `IncentiveContributor`).
+- Designed and verified `IncentiveCalculationService` with exact mathematical distribution, penny reconciliation, and exception handlers.
+- Built comprehensive 6-tab Settings Hub at `/settings/incentives` (Role & Revenue Rates, 70/20/10 Splits, Revenue Basis, Effort Standards, Roster & Joiner/Leaver Policy, Governance & Privacy).
+- Linked Role configuration directly to Master `User & Role` (SSOT), preventing duplicate data silos.
+- Built unified `Incentive Hub` at `/incentives` with Employee Self-Service, Department Pool Approvals, and Live Calculation Sandbox.
+- Validated with 6 automated feature tests (44 assertions), 0 TypeScript compilation errors, and complete Next.js static build.

@@ -27,6 +27,8 @@ export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
   "/settings/ai-testing-console": { any: ["ai_testing.manage"] },
   "/settings/ai-screening-monitor": { any: ["ai_testing.manage"] },
   "/settings/users": { any: ["users.manage"] },
+  "/settings/incentives": { any: ["users.manage"] },
+  "/incentives": { any: [] },
   "/settings/targets": { any: ["users.manage"] },
   "/settings/lead-sources": { any: ["leads.edit"] },
   "/settings/lead-channels": { any: ["leads.edit"] },

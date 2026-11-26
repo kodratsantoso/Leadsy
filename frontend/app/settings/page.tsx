@@ -11,6 +11,7 @@ const categories = [
     desc: "Manage team accounts, target revenue allocation, and hierarchy configurations.",
     items: [
       { icon: Users,     title: "Users & Roles",         desc: "User accounts, role management, permissions",                        href: "/settings/users",         color: "bg-[color:var(--brand)]" },
+      { icon: Coins,     title: "Collaborative Incentives", desc: "Kebijakan insentif kolaboratif departemen (Sales, SA, CSM, PSC), rasio 70/20/10, dan approval", href: "/settings/incentives", color: "bg-[color:var(--brand)]" },
       { icon: Target,    title: "Target Revenue",        desc: "Configure company revenue targets and cascade to Sales and AMs",      href: "/settings/targets/revenue", color: "bg-[color:var(--brand)]" },
       { icon: Activity,  title: "Target KPI",            desc: "Configure role-specific metrics and KPIs for all user levels",        href: "/settings/targets/kpi",   color: "bg-[color:var(--brand)]" },
       { icon: Shield,    title: "Company Settings",      desc: "Configure company brand, logo, NPWP, signatory details, and bank accounts", href: "/settings/company", color: "bg-[color:var(--brand)]" },

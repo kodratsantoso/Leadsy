@@ -565,6 +565,28 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     // Lead Commissions
     Route::get('leads/{lead}/commissions', [\App\Http\Controllers\Api\LeadCommissionController::class, 'index'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/commissions/generate', [\App\Http\Controllers\Api\LeadCommissionController::class, 'generateDraft'])->middleware('permission:leads.edit');
+
+    // Collaborative Incentive Management
+    Route::prefix('incentives')->group(function () {
+        // Settings & Simulation
+        Route::get('settings', [\App\Http\Controllers\Api\IncentiveSettingController::class, 'getSettings']);
+        Route::put('settings', [\App\Http\Controllers\Api\IncentiveSettingController::class, 'updateSettings']);
+        Route::post('calculate-preview', [\App\Http\Controllers\Api\IncentiveSettingController::class, 'previewCalculation']);
+
+        // Pools & Workspaces
+        Route::get('pools', [\App\Http\Controllers\Api\IncentivePoolController::class, 'index']);
+        Route::get('pools/{id}', [\App\Http\Controllers\Api\IncentivePoolController::class, 'show']);
+        Route::post('pools/generate-from-order/{orderId}', [\App\Http\Controllers\Api\IncentivePoolController::class, 'generateFromOrder']);
+        Route::post('pools/{id}/recalculate', [\App\Http\Controllers\Api\IncentivePoolController::class, 'recalculate']);
+        Route::post('pools/{id}/contributors', [\App\Http\Controllers\Api\IncentivePoolController::class, 'addContributor']);
+        Route::delete('pools/{id}/contributors/{contributorId}', [\App\Http\Controllers\Api\IncentivePoolController::class, 'removeContributor']);
+        Route::post('pools/{id}/approve-dept', [\App\Http\Controllers\Api\IncentivePoolController::class, 'approveDept']);
+        Route::post('pools/{id}/approve-finance', [\App\Http\Controllers\Api\IncentivePoolController::class, 'approveFinance']);
+
+        // Personal Summary & Analytics
+        Route::get('my-summary', [\App\Http\Controllers\Api\IncentivePoolController::class, 'mySummary']);
+        Route::get('analytics', [\App\Http\Controllers\Api\IncentivePoolController::class, 'analytics']);
+    });
     // Lead Intelligence Routes (Module A — Lead Scoring, Qualification, Product Matching, AI Analysis)
     Route::post('qualification/evaluate', [QualificationController::class, 'evaluate'])->middleware('permission:leads.view');
     Route::apiResource('qualification/parameter-sets', QualificationParameterSetController::class)->middleware('permission:leads.edit');

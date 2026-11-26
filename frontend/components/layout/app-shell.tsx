@@ -96,12 +96,18 @@ export const navItems: NavItem[] = [
     ],
   },
   {
+    href: "/incentives",
+    icon: Coins,
+    label: "Incentive Hub",
+  },
+  {
     href: "/settings",
     icon: Settings,
     label: "Settings",
     children: [
       { href: "/settings",                icon: LayoutGrid,   label: "Settings Overview", group: "General" },
       { href: "/settings/users",          icon: Users,        label: "Users & Roles", group: "User & Targets" },
+      { href: "/settings/incentives",     icon: Coins,        label: "Collaborative Incentives", group: "User & Targets" },
       { href: "/settings/targets/revenue", icon: Target,       label: "Target Revenue", group: "User & Targets" },
       { href: "/settings/targets/kpi",     icon: Activity,     label: "Target KPI", group: "User & Targets" },
       { href: "/settings/ai-defaults",    icon: Bot,          label: "AI Defaults", group: "AI Intelligence" },

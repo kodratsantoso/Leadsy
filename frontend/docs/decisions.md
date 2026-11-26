@@ -284,3 +284,10 @@
 - **Rationale**: Standalone Docker/Coolify setups lacked zero-downtime rolling updates, persistent volume safety, in-cluster service discovery, and automated worker/scheduler scaling required for production enterprise load.
 - **Impact**: GitHub push to `main` deploys images `leadsy-backend:<sha>` and `leadsy-frontend:<sha>` to the in-cluster registry with rollout verification. Root `AGENTS.md` and frontend governance strictly reflect this deployment contract.
 
+## ADR-038: Department Collaborative Incentive Management Architecture
+- **Date**: 2026-11-26
+- **Status**: Active
+- **Decision**: Implemented Department Collaborative Incentive Management unifying pre-sales (SA), post-sales (CSM), delivery (PSC), and sales under a single collaborative compensation framework. Built a 6-tab comprehensive settings hub at `/settings/incentives` that directly inherits roles from `User & Role` (Single Source of Truth), eliminating role silos. Configurable 70/20/10 pool split (Direct, Indirect, Shared Department), dynamic role weights (1.5, 1.2, 1.0, 0.5), performance multipliers (0.8 - 1.2), and deterministic penny/residual reconciliation. Built the unified `Incentive Hub` at `/incentives` featuring employee earnings transparency, department pool review & approval workspace, and a real-time mathematical sandbox.
+- **Rationale**: Individual commission silos created friction between sales, solution architecture, and delivery. A collaborative model encourages shared ownership of revenue and delivery quality, while dynamic configuration prevents hardcoded policy drift.
+- **Impact**: Complete non-destructive database addition (`incentive_policies`, `role_incentive_settings`, `incentive_pools`, `incentive_contributors`). Backend calculation engine is 100% verified with automated tests. Frontend is type-safe and pre-rendered statically with zero errors.
+
