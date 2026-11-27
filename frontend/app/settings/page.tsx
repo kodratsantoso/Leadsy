@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity, BookOpen, Mail, Hash, FileCheck } from "lucide-react";
+import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity, BookOpen, Mail, Hash, FileCheck, Zap, Receipt } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
 import { canAccessPath } from "@/lib/permissions";
@@ -20,22 +20,31 @@ const categories = [
   },
   {
     name: "CRM Taxonomy",
-    desc: "Define master data, stages, pipelines, and currencies used for lead operations.",
+    desc: "Klasifikasi industri terpusat tingkat SaaS dan struktur pipeline workspace tenant.",
     items: [
-      { icon: Layers,    title: "Industries",            desc: "Industry and sub-industry master data for lead classification",      href: "/settings/industries",    color: "bg-[color:var(--status-info)]" },
-      { icon: Briefcase, title: "Business Categories",   desc: "Business category master data used by AI and lead firmographics",    href: "/settings/business-categories", color: "bg-[color:var(--status-info)]" },
-      { icon: Tags,      title: "Lead Sources",          desc: "Source master data used to classify where leads come from",          href: "/settings/lead-sources",  color: "bg-[color:var(--status-info)]" },
-      { icon: GitBranch, title: "Lead Channels",         desc: "Channel types nested under lead sources for deeper classification",  href: "/settings/lead-channels", color: "bg-[color:var(--status-info)]" },
-      { icon: GitBranch, title: "Lead Stages",           desc: "Pipeline stage master data used by lead movement and funnels",       href: "/settings/lead-stages",   color: "bg-[color:var(--status-info)]" },
-      { icon: Coins,     title: "Currency",              desc: "Currency master data, separators, and decimal display format",       href: "/settings/currency",      color: "bg-[color:var(--status-success)]" },
+      { icon: Layers,    title: "Industries (SaaS Global)", desc: "Master data industri & sub-industri terpusat untuk seluruh tenant", href: "/settings/industries", color: "bg-[color:var(--status-info)]" },
+      { icon: Briefcase, title: "Business Categories (SaaS)", desc: "Kategori bisnis global digunakan oleh AI dan firmografi lead", href: "/settings/business-categories", color: "bg-[color:var(--status-info)]" },
+      { icon: Tags,      title: "Lead Sources",          desc: "Sumber prospek kustom khusus untuk workspace tenant Anda",          href: "/settings/lead-sources",  color: "bg-[color:var(--status-info)]" },
+      { icon: GitBranch, title: "Lead Channels",         desc: "Kanal prospek bertingkat khusus untuk workspace tenant Anda",  href: "/settings/lead-channels", color: "bg-[color:var(--status-info)]" },
+      { icon: GitBranch, title: "Lead Stages",           desc: "Tahapan sales pipeline funnel khusus workspace tenant Anda",       href: "/settings/lead-stages",   color: "bg-[color:var(--status-info)]" },
+      { icon: Coins,     title: "Default Currency",      desc: "Pilih mata uang utama workspace (IDR/USD) dan format pemisah desimal", href: "/settings/currency", color: "bg-[color:var(--status-success)]" },
     ]
   },
   {
     name: "AI Intelligence",
-    desc: "Configure AI prompt customization and Ideal Customer Profiles.",
+    desc: "Pemantauan saldo kuota kredit AI dan pengaturan Ideal Customer Profile (ICP).",
     items: [
-      { icon: Bot,       title: "Prompt Templates",      desc: "Customize AI qualification prompts and business response guidelines", href: "/settings/ai-defaults?tab=prompts", color: "bg-[color:var(--brand)]" },
-      { icon: Target,    title: "ICP Profiles",          desc: "Ideal Customer Profiles for lead scoring and ICP match evaluation", href: "/settings/icp-profiles",  color: "bg-[color:var(--status-info)]" },
+      { icon: Zap,       title: "AI Credits & Quota",    desc: "Pantau saldo kuota kredit AI workspace, riwayat token, dan top-up kuota", href: "/settings/ai-credits", color: "bg-amber-500" },
+      { icon: Target,    title: "ICP Profiles",          desc: "Ideal Customer Profiles workspace untuk scoring dan evaluasi otomatis lead", href: "/settings/icp-profiles",  color: "bg-[color:var(--status-info)]" },
+    ]
+  },
+  {
+    name: "Finance & Tax Codes (O2C)",
+    desc: "Pengaturan kode pajak, withholding tax, dan aturan item penjualan khusus tenant.",
+    items: [
+      { icon: Receipt,   title: "Tax Codes (PPN)",       desc: "Kode pajak pertambahan nilai dan tarif persentase per tenant", href: "/settings/o2c/tax-codes", color: "bg-[color:var(--status-success)]" },
+      { icon: Receipt,   title: "Withholding Tax (PPh)", desc: "Kode pajak pemotongan (PPh 23, PPh 4(2), jasa teknik) per tenant", href: "/settings/o2c/withholding-tax-codes", color: "bg-[color:var(--status-warning)]" },
+      { icon: FileText,  title: "Item Settings",         desc: "Kebijakan diskon item, override harga manual, dan tier paket SaaS", href: "/settings/o2c/item-settings", color: "bg-[color:var(--brand)]" },
     ]
   },
   {

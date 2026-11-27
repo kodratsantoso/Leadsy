@@ -12,9 +12,18 @@ use Illuminate\Support\Facades\DB;
 
 class CompanyBankAccountController extends Controller
 {
-    public function index(): JsonResponse
+    private function resolveTenant(Request $request): ?Tenant
     {
-        $tenant = Tenant::first();
+        $user = $request->user();
+        if ($user && $user->tenant_id) {
+            return Tenant::find($user->tenant_id);
+        }
+        return Tenant::first();
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        $tenant = $this->resolveTenant($request);
         if (!$tenant) {
             return response()->json(['message' => 'Tenant settings not found.'], 404);
         }
@@ -31,7 +40,7 @@ class CompanyBankAccountController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $tenant = Tenant::first();
+        $tenant = $this->resolveTenant($request);
         if (!$tenant) {
             return response()->json(['message' => 'Tenant settings not found.'], 404);
         }
@@ -66,7 +75,8 @@ class CompanyBankAccountController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $account = CompanyBankAccount::findOrFail($id);
+        $tenant = $this->resolveTenant($request);
+        $account = CompanyBankAccount::where('tenant_id', $tenant?->id)->findOrFail($id);
 
         $validated = $request->validate([
             'bank_name' => 'sometimes|required|string|max:255',
@@ -96,9 +106,10 @@ class CompanyBankAccountController extends Controller
         ]);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
-        $account = CompanyBankAccount::findOrFail($id);
+        $tenant = $this->resolveTenant($request);
+        $account = CompanyBankAccount::where('tenant_id', $tenant?->id)->findOrFail($id);
 
         // Check if referenced by LeadQuotation or LeadSalesOrder
         $hasQuotations = DB::table('lead_quotations')->where('bank_account_id', $id)->exists();
@@ -123,9 +134,10 @@ class CompanyBankAccountController extends Controller
         ]);
     }
 
-    public function setDefault(int $id): JsonResponse
+    public function setDefault(Request $request, int $id): JsonResponse
     {
-        $account = CompanyBankAccount::findOrFail($id);
+        $tenant = $this->resolveTenant($request);
+        $account = CompanyBankAccount::where('tenant_id', $tenant?->id)->findOrFail($id);
         if (!$account->is_active) {
             return response()->json(['message' => 'Cannot set inactive bank account as default.'], 422);
         }

@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ItemSetting extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'setting_key',
         'setting_value_json',
         'is_active',

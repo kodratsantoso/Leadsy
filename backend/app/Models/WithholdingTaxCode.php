@@ -46,6 +46,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WithholdingTaxCode extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'wht_code',
         'wht_name',
         'wht_type',

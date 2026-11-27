@@ -37,6 +37,15 @@ class PermissionSeeder extends Seeder
 
             ['name' => 'maps.view',           'module' => 'maps',         'display_name' => 'View Maps & Territory'],
 
+            ['name' => 'targets.view',        'module' => 'targets',      'display_name' => 'View Revenue & KPI Targets'],
+            ['name' => 'targets.edit',        'module' => 'targets',      'display_name' => 'Input & Edit Targets'],
+            ['name' => 'targets.manage',      'module' => 'targets',      'display_name' => 'Manage & Cascade Targets'],
+
+            ['name' => 'company.manage',      'module' => 'company',      'display_name' => 'Manage Company & Numbering'],
+            ['name' => 'taxonomy.manage',     'module' => 'taxonomy',     'display_name' => 'Manage Sources, Channels & Stages'],
+            ['name' => 'finance.manage',      'module' => 'finance',      'display_name' => 'Manage Currencies & Tax Settings'],
+            ['name' => 'incentives.manage',   'module' => 'incentives',   'display_name' => 'Manage Incentive Policies'],
+
             ['name' => 'professional_services.view',              'module' => 'professional_services', 'display_name' => 'View PS Estimations & Projects'],
             ['name' => 'professional_services.create',            'module' => 'professional_services', 'display_name' => 'Create PS Estimations'],
             ['name' => 'professional_services.edit',              'module' => 'professional_services', 'display_name' => 'Edit PS Estimations & Worklogs'],

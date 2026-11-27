@@ -11,9 +11,18 @@ use Illuminate\Support\Facades\Storage;
 
 class CompanySettingsController extends Controller
 {
-    public function show(): JsonResponse
+    private function resolveTenant(Request $request): ?Tenant
     {
-        $tenant = Tenant::first();
+        $user = $request->user();
+        if ($user && $user->tenant_id) {
+            return Tenant::find($user->tenant_id);
+        }
+        return Tenant::first();
+    }
+
+    public function show(Request $request): JsonResponse
+    {
+        $tenant = $this->resolveTenant($request);
         if (!$tenant) {
             return response()->json(['message' => 'Tenant settings not found.'], 404);
         }
@@ -26,7 +35,7 @@ class CompanySettingsController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        $tenant = Tenant::first();
+        $tenant = $this->resolveTenant($request);
         if (!$tenant) {
             return response()->json(['message' => 'Tenant settings not found.'], 404);
         }
@@ -54,7 +63,7 @@ class CompanySettingsController extends Controller
 
     public function uploadLogo(Request $request): JsonResponse
     {
-        $tenant = Tenant::first();
+        $tenant = $this->resolveTenant($request);
         if (!$tenant) {
             return response()->json(['message' => 'Tenant settings not found.'], 404);
         }
@@ -82,9 +91,9 @@ class CompanySettingsController extends Controller
         ]);
     }
 
-    public function deleteLogo(): JsonResponse
+    public function deleteLogo(Request $request): JsonResponse
     {
-        $tenant = Tenant::first();
+        $tenant = $this->resolveTenant($request);
         if (!$tenant) {
             return response()->json(['message' => 'Tenant settings not found.'], 404);
         }
@@ -105,7 +114,7 @@ class CompanySettingsController extends Controller
 
     public function uploadSignatoryImage(Request $request): JsonResponse
     {
-        $tenant = Tenant::first();
+        $tenant = $this->resolveTenant($request);
         if (!$tenant) {
             return response()->json(['message' => 'Tenant settings not found.'], 404);
         }

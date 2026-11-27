@@ -46,6 +46,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TaxCode extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'tax_code',
         'tax_name',
         'tax_type',

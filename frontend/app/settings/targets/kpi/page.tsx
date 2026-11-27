@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Save, Activity, Trash, Filter } from "lucide-react";
+import { Save, Activity, Trash, Filter, Info, ShieldCheck, Lock } from "lucide-react";
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell } from "@/components/ui/table";
@@ -11,9 +12,14 @@ import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/apiFetch";
 import { readApiError } from "@/lib/apiError";
 import { useToast } from "@/components/ui/toast";
+import { useAuthStore } from "@/store/useAuthStore";
+import { getUserPermissionNames, isSuperAdminUser } from "@/lib/permissions";
 
 export default function KpiTargetsPage() {
   const toast = useToast();
+  const user = useAuthStore((s) => s.user);
+  const canEdit = isSuperAdminUser(user) || getUserPermissionNames(user).some((p) => ["targets.edit", "targets.manage", "users.manage"].includes(p));
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [targets, setTargets] = useState<any[]>([]);
@@ -167,16 +173,45 @@ export default function KpiTargetsPage() {
 
   return (
     <div className="space-y-6 p-6 w-full">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">KPI Targets</h1>
-          <p className="text-muted-foreground mt-1">Bulk entry grid to configure KPI targets for all users.</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <BackToSettings />
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Target KPI Kinerja Tim</h1>
+            {!canEdit ? (
+              <Badge variant="outline" className="gap-1 text-xs text-muted-foreground border-border">
+                <Lock className="h-3 w-3" />
+                Mode Hanya Lihat (View Only)
+              </Badge>
+            ) : (
+              <Badge variant="success" className="gap-1 text-xs">
+                <ShieldCheck className="h-3 w-3" />
+                Akses Edit Aktif
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Konfigurasi kuota target metrik kinerja kuantitatif per role pengguna (Sales, Presales, CSM, AM) per periode penagihan.
+          </p>
         </div>
-        <Button onClick={handleSaveAll} disabled={saving}>
-          <Save className="w-4 h-4 mr-2" /> 
-          {saving ? "Saving..." : "Save All Targets"}
-        </Button>
+
+        {canEdit ? (
+          <Button onClick={handleSaveAll} disabled={saving} className="shadow-sm">
+            <Save className="w-4 h-4 mr-2" /> 
+            {saving ? "Menyimpan..." : "Simpan Semua Target KPI"}
+          </Button>
+        ) : null}
       </div>
+
+      {/* Guide Info Banner */}
+      <Card className="border-border bg-[color:var(--surface-subtle)]">
+        <CardContent className="flex items-start gap-3 p-4">
+          <Info className="h-5 w-5 text-[color:var(--brand)] shrink-0 mt-0.5" />
+          <div className="text-xs text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Petunjuk Pengisian:</span> Pilih periode evaluasi (Bulanan, Kuartalan, Tahunan), lalu masukkan angka target pada kolom metrik yang berlaku untuk setiap personil. Kolom bertanda <span className="font-mono text-muted-foreground">N/A</span> menandakan metrik tersebut tidak ditugaskan untuk role terkait. Klik <strong>Simpan Semua Target KPI</strong> untuk memperbarui data secara kolektif.
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="overflow-hidden border-border/50 shadow-sm">
         <CardHeader className="pb-4 bg-muted/30 border-b border-border/50">
@@ -184,24 +219,24 @@ export default function KpiTargetsPage() {
             <div className="space-y-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Filter Role</label>
               <Select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="w-40">
-                <option value="all">All Roles</option>
+                <option value="all">Semua Role</option>
                 {roles.map((r: string) => <option key={r} value={r}>{r.toUpperCase()}</option>)}
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Period</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Periode</label>
               <Select value={periodType} onChange={e => setPeriodType(e.target.value)} className="w-32">
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
+                <option value="monthly">Bulanan</option>
+                <option value="quarterly">Kuartalan</option>
+                <option value="yearly">Tahunan</option>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Start Date</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tanggal Mulai</label>
               <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">End Date</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tanggal Selesai</label>
               <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40" />
             </div>
           </div>
@@ -211,7 +246,7 @@ export default function KpiTargetsPage() {
             <Table>
               <TableHead>
                 <TableRow className="hover:bg-transparent">
-                  <TableHeaderCell className="w-64 min-w-[250px] sticky left-0 bg-background z-10 shadow-[1px_0_0_0_hsl(var(--border))]">User</TableHeaderCell>
+                  <TableHeaderCell className="w-64 min-w-[250px] sticky left-0 bg-background z-10 shadow-[1px_0_0_0_hsl(var(--border))]">Pengguna (User)</TableHeaderCell>
                   <TableHeaderCell className="w-32">Role</TableHeaderCell>
                   {dynamicKpiColumns.map(col => (
                     <TableHeaderCell key={col.key} className="min-w-[180px] capitalize">
@@ -223,7 +258,7 @@ export default function KpiTargetsPage() {
               </TableHead>
               <TableBody>
                 {filteredUsers.length === 0 ? (
-                  <TableRow><TableCell colSpan={dynamicKpiColumns.length + 2} className="text-center py-10">No users found for this role.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={dynamicKpiColumns.length + 2} className="text-center py-10 text-muted-foreground">Tidak ada pengguna yang cocok dengan filter role ini.</TableCell></TableRow>
                 ) : (
                   filteredUsers.map(u => {
                     const uRole = u.role?.name?.toLowerCase() || "";
@@ -233,7 +268,7 @@ export default function KpiTargetsPage() {
                       <TableRow key={u.id} className="hover:bg-muted/30 transition-colors group">
                         <TableCell className="font-medium sticky left-0 bg-background group-hover:bg-muted/30 z-10 shadow-[1px_0_0_0_hsl(var(--border))] transition-colors">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                            <div className="w-6 h-6 rounded-full bg-[color:var(--brand-subtle)] text-[color:var(--brand)] flex items-center justify-center text-xs font-bold shrink-0">
                               {u.name.charAt(0)}
                             </div>
                             <span className="truncate">{u.name}</span>
@@ -248,10 +283,11 @@ export default function KpiTargetsPage() {
                           return (
                             <TableCell key={col.key} className={!isApplicable ? "bg-muted/10 opacity-50" : ""}>
                               {isApplicable ? (
-                                <div className="relative flex items-center group-focus-within:ring-1 group-focus-within:ring-primary rounded-md transition-all">
+                                <div className="relative flex items-center group-focus-within:ring-1 group-focus-within:ring-[color:var(--brand)] rounded-md transition-all">
                                   <Input 
                                     type="number" 
-                                    className="h-9 text-sm bg-transparent border-border/50 hover:border-primary/50 focus-visible:ring-0 focus-visible:border-primary transition-all" 
+                                    disabled={!canEdit}
+                                    className="h-9 text-sm bg-transparent border-border/50 hover:border-[color:var(--brand)]/50 focus-visible:ring-0 focus-visible:border-[color:var(--brand)] transition-all disabled:opacity-75 disabled:cursor-not-allowed" 
                                     placeholder={`0`}
                                     value={gridValues[cellKey] || ""}
                                     onChange={(e) => handleGridChange(u.id, col.key, e.target.value)}
@@ -259,7 +295,7 @@ export default function KpiTargetsPage() {
                                   {col.valueType === "percentage" && <span className="absolute right-3 text-xs text-muted-foreground font-medium pointer-events-none">%</span>}
                                 </div>
                               ) : (
-                                <span className="text-[11px] text-muted-foreground/70 uppercase tracking-widest pl-2">N/A</span>
+                                <span className="text-[11px] text-muted-foreground/70 uppercase tracking-widest pl-2 font-mono">N/A</span>
                               )}
                             </TableCell>
                           );

@@ -273,25 +273,32 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::put('settings/document-numbering/{documentType}', [\App\Http\Controllers\Api\DocumentNumberingController::class, 'update']);
     Route::post('settings/document-numbering/preview', [\App\Http\Controllers\Api\DocumentNumberingController::class, 'preview']);
 
-    // Targets
-    Route::get('targets/config', [TargetConfigController::class, 'config']);
+    // Tenant Workspace AI Credits & Usage
+    Route::get('tenant/ai-credits', [\App\Http\Controllers\Api\TenantAiCreditController::class, 'show']);
+    Route::post('tenant/ai-credits/top-up-request', [\App\Http\Controllers\Api\TenantAiCreditController::class, 'requestTopUp']);
+
+    // Targets & KPI (Granular RBAC: targets.view, targets.edit, targets.manage, users.manage)
+    Route::get('targets/config', [TargetConfigController::class, 'config'])
+        ->middleware('permission:targets.view,targets.edit,targets.manage,users.manage');
     
-    // Revenue Targets — gated on users.manage, matching the frontend's own nav gate for
-    // /settings/targets. Was fully unguarded (2026-09-13 audit).
-    Route::middleware('permission:users.manage')->group(function () {
+    Route::middleware('permission:targets.view,targets.edit,targets.manage,users.manage')->group(function () {
         Route::get('revenue-targets', [\App\Http\Controllers\Api\RevenueTargetController::class, 'index']);
-        Route::post('revenue-targets', [\App\Http\Controllers\Api\RevenueTargetController::class, 'store']);
         Route::get('revenue-targets/{revenue_target}', [\App\Http\Controllers\Api\RevenueTargetController::class, 'show']);
+        Route::get('kpi-targets', [\App\Http\Controllers\Api\KpiTargetController::class, 'index']);
+        Route::get('kpi-targets/{kpi_target}', [\App\Http\Controllers\Api\KpiTargetController::class, 'show']);
+    });
+
+    Route::middleware('permission:targets.edit,targets.manage,users.manage')->group(function () {
+        Route::post('revenue-targets', [\App\Http\Controllers\Api\RevenueTargetController::class, 'store']);
         Route::put('revenue-targets/{revenue_target}', [\App\Http\Controllers\Api\RevenueTargetController::class, 'update']);
+        Route::post('kpi-targets/bulk', [\App\Http\Controllers\Api\KpiTargetController::class, 'bulkStore']);
+        Route::post('kpi-targets', [\App\Http\Controllers\Api\KpiTargetController::class, 'store']);
+        Route::put('kpi-targets/{kpi_target}', [\App\Http\Controllers\Api\KpiTargetController::class, 'update']);
+    });
+
+    Route::middleware('permission:targets.manage,users.manage')->group(function () {
         Route::delete('revenue-targets/{revenue_target}', [\App\Http\Controllers\Api\RevenueTargetController::class, 'destroy']);
         Route::post('revenue-targets/{id}/cascade', [\App\Http\Controllers\Api\RevenueTargetController::class, 'cascade']);
-
-        // KPI Targets — same gate, same reasoning.
-        Route::post('kpi-targets/bulk', [\App\Http\Controllers\Api\KpiTargetController::class, 'bulkStore']);
-        Route::get('kpi-targets', [\App\Http\Controllers\Api\KpiTargetController::class, 'index']);
-        Route::post('kpi-targets', [\App\Http\Controllers\Api\KpiTargetController::class, 'store']);
-        Route::get('kpi-targets/{kpi_target}', [\App\Http\Controllers\Api\KpiTargetController::class, 'show']);
-        Route::put('kpi-targets/{kpi_target}', [\App\Http\Controllers\Api\KpiTargetController::class, 'update']);
         Route::delete('kpi-targets/{kpi_target}', [\App\Http\Controllers\Api\KpiTargetController::class, 'destroy']);
     });
     Route::post('leads/{lead}/push-to-funnel', [LeadController::class, 'pushToFunnel'])->middleware('permission:leads.edit');

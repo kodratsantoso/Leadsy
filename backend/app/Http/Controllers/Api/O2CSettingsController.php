@@ -11,22 +11,45 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
  
 class O2CSettingsController extends Controller
 {
+    private function resolveTenantId(Request $request): ?int
+    {
+        return $request->user()?->tenant_id;
+    }
+
     // === TAX CODES CRUD ===
  
-    public function getTaxCodes(): JsonResponse
+    public function getTaxCodes(Request $request): JsonResponse
     {
+        $tenantId = $this->resolveTenantId($request);
+        $query = TaxCode::query();
+        if ($tenantId) {
+            $query->where(function ($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
+            });
+        }
+
         return response()->json([
-            'data' => TaxCode::orderByDesc('is_default')->orderBy('tax_code')->get()
+            'data' => $query->orderByDesc('is_default')->orderBy('tax_code')->get()
         ]);
     }
  
     public function storeTaxCode(Request $request): JsonResponse
     {
+        $tenantId = $this->resolveTenantId($request);
+
         $validated = $request->validate([
-            'tax_code' => 'required|string|unique:tax_codes,tax_code|max:50',
+            'tax_code' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('tax_codes', 'tax_code')->where(function ($q) use ($tenantId) {
+                    return $tenantId ? $q->where('tenant_id', $tenantId) : $q->whereNull('tenant_id');
+                }),
+            ],
             'tax_name' => 'required|string|max:100',
             'tax_type' => 'required|string|in:sales_tax,vat,service_tax,non_taxable,other',
             'rate_percentage' => 'required|numeric|min:0',
@@ -38,14 +61,19 @@ class O2CSettingsController extends Controller
             'effective_until' => 'nullable|date|after_or_equal:effective_from',
         ]);
  
-        return DB::transaction(function () use ($validated) {
+        return DB::transaction(function () use ($validated, $tenantId) {
             $isDefault = $validated['is_default'] ?? false;
             
             if ($isDefault) {
-                TaxCode::query()->update(['is_default' => false]);
+                $scope = TaxCode::query();
+                if ($tenantId) {
+                    $scope->where('tenant_id', $tenantId);
+                }
+                $scope->update(['is_default' => false]);
             }
  
             $taxCode = TaxCode::create(array_merge($validated, [
+                'tenant_id' => $tenantId,
                 'is_default' => $isDefault,
                 'is_active' => $validated['is_active'] ?? true,
                 'created_by' => Auth::id(),
@@ -59,10 +87,23 @@ class O2CSettingsController extends Controller
  
     public function updateTaxCode(Request $request, $id): JsonResponse
     {
+        $tenantId = $this->resolveTenantId($request);
         $taxCode = TaxCode::findOrFail($id);
+        if ($taxCode->tenant_id !== null && $taxCode->tenant_id !== $tenantId) {
+            return response()->json(['message' => 'Unauthorized access to tax code.'], 403);
+        }
  
         $validated = $request->validate([
-            'tax_code' => 'required|string|max:50|unique:tax_codes,tax_code,' . $taxCode->id,
+            'tax_code' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('tax_codes', 'tax_code')
+                    ->ignore($taxCode->id)
+                    ->where(function ($q) use ($tenantId) {
+                        return $tenantId ? $q->where('tenant_id', $tenantId) : $q->whereNull('tenant_id');
+                    }),
+            ],
             'tax_name' => 'required|string|max:100',
             'tax_type' => 'required|string|in:sales_tax,vat,service_tax,non_taxable,other',
             'rate_percentage' => 'required|numeric|min:0',
@@ -76,11 +117,15 @@ class O2CSettingsController extends Controller
  
         $original = $taxCode->toArray();
  
-        return DB::transaction(function () use ($taxCode, $validated, $original) {
+        return DB::transaction(function () use ($taxCode, $validated, $original, $tenantId) {
             $isDefault = $validated['is_default'] ?? false;
             
             if ($isDefault) {
-                TaxCode::query()->where('id', '!=', $taxCode->id)->update(['is_default' => false]);
+                $scope = TaxCode::query()->where('id', '!=', $taxCode->id);
+                if ($tenantId) {
+                    $scope->where('tenant_id', $tenantId);
+                }
+                $scope->update(['is_default' => false]);
             }
  
             $taxCode->update(array_merge($validated, [
@@ -95,9 +140,14 @@ class O2CSettingsController extends Controller
         });
     }
  
-    public function destroyTaxCode($id): JsonResponse
+    public function destroyTaxCode(Request $request, $id): JsonResponse
     {
+        $tenantId = $this->resolveTenantId($request);
         $taxCode = TaxCode::findOrFail($id);
+        if ($taxCode->tenant_id !== null && $taxCode->tenant_id !== $tenantId) {
+            return response()->json(['message' => 'Unauthorized access to tax code.'], 403);
+        }
+
         $original = $taxCode->toArray();
  
         DB::transaction(function () use ($taxCode, $original) {
@@ -110,17 +160,34 @@ class O2CSettingsController extends Controller
  
     // === WITHHOLDING TAX CODES CRUD ===
  
-    public function getWithholdingTaxCodes(): JsonResponse
+    public function getWithholdingTaxCodes(Request $request): JsonResponse
     {
+        $tenantId = $this->resolveTenantId($request);
+        $query = WithholdingTaxCode::query();
+        if ($tenantId) {
+            $query->where(function ($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
+            });
+        }
+
         return response()->json([
-            'data' => WithholdingTaxCode::orderByDesc('is_default')->orderBy('wht_code')->get()
+            'data' => $query->orderByDesc('is_default')->orderBy('wht_code')->get()
         ]);
     }
  
     public function storeWithholdingTaxCode(Request $request): JsonResponse
     {
+        $tenantId = $this->resolveTenantId($request);
+
         $validated = $request->validate([
-            'wht_code' => 'required|string|unique:withholding_tax_codes,wht_code|max:50',
+            'wht_code' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('withholding_tax_codes', 'wht_code')->where(function ($q) use ($tenantId) {
+                    return $tenantId ? $q->where('tenant_id', $tenantId) : $q->whereNull('tenant_id');
+                }),
+            ],
             'wht_name' => 'required|string|max:100',
             'wht_type' => 'required|string|in:income_tax,service_withholding,professional_service,other',
             'rate_percentage' => 'required|numeric|min:0',
@@ -132,14 +199,19 @@ class O2CSettingsController extends Controller
             'effective_until' => 'nullable|date|after_or_equal:effective_from',
         ]);
  
-        return DB::transaction(function () use ($validated) {
+        return DB::transaction(function () use ($validated, $tenantId) {
             $isDefault = $validated['is_default'] ?? false;
             
             if ($isDefault) {
-                WithholdingTaxCode::query()->update(['is_default' => false]);
+                $scope = WithholdingTaxCode::query();
+                if ($tenantId) {
+                    $scope->where('tenant_id', $tenantId);
+                }
+                $scope->update(['is_default' => false]);
             }
  
             $whtCode = WithholdingTaxCode::create(array_merge($validated, [
+                'tenant_id' => $tenantId,
                 'is_default' => $isDefault,
                 'is_active' => $validated['is_active'] ?? true,
                 'created_by' => Auth::id(),
@@ -153,10 +225,23 @@ class O2CSettingsController extends Controller
  
     public function updateWithholdingTaxCode(Request $request, $id): JsonResponse
     {
+        $tenantId = $this->resolveTenantId($request);
         $whtCode = WithholdingTaxCode::findOrFail($id);
+        if ($whtCode->tenant_id !== null && $whtCode->tenant_id !== $tenantId) {
+            return response()->json(['message' => 'Unauthorized access to withholding tax code.'], 403);
+        }
  
         $validated = $request->validate([
-            'wht_code' => 'required|string|max:50|unique:withholding_tax_codes,wht_code,' . $whtCode->id,
+            'wht_code' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('withholding_tax_codes', 'wht_code')
+                    ->ignore($whtCode->id)
+                    ->where(function ($q) use ($tenantId) {
+                        return $tenantId ? $q->where('tenant_id', $tenantId) : $q->whereNull('tenant_id');
+                    }),
+            ],
             'wht_name' => 'required|string|max:100',
             'wht_type' => 'required|string|in:income_tax,service_withholding,professional_service,other',
             'rate_percentage' => 'required|numeric|min:0',
@@ -170,11 +255,15 @@ class O2CSettingsController extends Controller
  
         $original = $whtCode->toArray();
  
-        return DB::transaction(function () use ($whtCode, $validated, $original) {
+        return DB::transaction(function () use ($whtCode, $validated, $original, $tenantId) {
             $isDefault = $validated['is_default'] ?? false;
             
             if ($isDefault) {
-                WithholdingTaxCode::query()->where('id', '!=', $whtCode->id)->update(['is_default' => false]);
+                $scope = WithholdingTaxCode::query()->where('id', '!=', $whtCode->id);
+                if ($tenantId) {
+                    $scope->where('tenant_id', $tenantId);
+                }
+                $scope->update(['is_default' => false]);
             }
  
             $whtCode->update(array_merge($validated, [
@@ -189,9 +278,14 @@ class O2CSettingsController extends Controller
         });
     }
  
-    public function destroyWithholdingTaxCode($id): JsonResponse
+    public function destroyWithholdingTaxCode(Request $request, $id): JsonResponse
     {
+        $tenantId = $this->resolveTenantId($request);
         $whtCode = WithholdingTaxCode::findOrFail($id);
+        if ($whtCode->tenant_id !== null && $whtCode->tenant_id !== $tenantId) {
+            return response()->json(['message' => 'Unauthorized access to withholding tax code.'], 403);
+        }
+
         $original = $whtCode->toArray();
  
         DB::transaction(function () use ($whtCode, $original) {
@@ -204,25 +298,38 @@ class O2CSettingsController extends Controller
  
     // === ITEM SETTINGS ===
  
-    public function getItemSettings(): JsonResponse
+    public function getItemSettings(Request $request): JsonResponse
     {
-        $settings = ItemSetting::where('is_active', true)->get();
+        $tenantId = $this->resolveTenantId($request);
+        $query = ItemSetting::where('is_active', true);
+        if ($tenantId) {
+            $query->where(function ($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
+            });
+        }
+
+        $settings = $query->get();
         return response()->json(['data' => $settings]);
     }
  
     public function updateItemSettings(Request $request): JsonResponse
     {
+        $tenantId = $this->resolveTenantId($request);
+
         $validated = $request->validate([
             'settings' => 'required|array',
             'settings.*.setting_key' => 'required|string',
             'settings.*.setting_value_json' => 'nullable',
         ]);
  
-        return DB::transaction(function () use ($validated) {
+        return DB::transaction(function () use ($validated, $tenantId) {
             $saved = [];
             foreach ($validated['settings'] as $item) {
                 $setting = ItemSetting::updateOrCreate(
-                    ['setting_key' => $item['setting_key']],
+                    [
+                        'tenant_id' => $tenantId,
+                        'setting_key' => $item['setting_key'],
+                    ],
                     [
                         'setting_value_json' => $item['setting_value_json'],
                         'is_active' => true,
@@ -237,4 +344,5 @@ class O2CSettingsController extends Controller
             return response()->json(['data' => $saved]);
         });
     }
+}
 }

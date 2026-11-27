@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2, Upload, KeyRound, ShieldAlert, Layers, Package, Users as UsersIcon, Briefcase, MessageSquare, Bot, Sliders, History, MapPin, ChevronDown, ChevronRight, SlidersHorizontal, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2, Upload, KeyRound, ShieldAlert, Layers, Package, Users as UsersIcon, Briefcase, MessageSquare, Bot, Sliders, History, MapPin, ChevronDown, ChevronRight, SlidersHorizontal, CheckCircle2, ShieldCheck, Target, Coins, Building2, Tags, Receipt } from "lucide-react";
 
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Badge } from "@/components/ui/badge";
@@ -148,6 +148,31 @@ const MODULE_METADATA: Record<string, { label: string; description: string; icon
     description: "Visualisasi spasial sebaran lead, radius kantor, dan pemetaan teritori",
     icon: MapPin,
   },
+  targets: {
+    label: "Target Revenue & KPI",
+    description: "Target pendapatan sales, alokasi kuota, metrik KPI per role, dan monitoring capaian",
+    icon: Target,
+  },
+  incentives: {
+    label: "Collaborative Incentives",
+    description: "Kebijakan insentif kolaboratif departemen (Sales, SA, CSM, PSC) dan approval pool",
+    icon: Coins,
+  },
+  company: {
+    label: "Company & Document Settings",
+    description: "Informasi entitas legal, rekening bank, format penomoran seri dokumen (QT, SO, INV, BAST)",
+    icon: Building2,
+  },
+  taxonomy: {
+    label: "CRM Taxonomy & Pipelines",
+    description: "Pengaturan master sumber prospek (lead sources), channel type, dan tahapan sales stage",
+    icon: Tags,
+  },
+  finance: {
+    label: "Finance & Tax Codes (O2C)",
+    description: "Pengaturan mata uang default tenant, kode pajak PPN, withholding tax PPh, dan aturan item",
+    icon: Receipt,
+  },
 };
 
 const MODULE_TIER_PRESETS: Record<string, { view: string[]; edit: string[]; manage: string[] }> = {
@@ -165,6 +190,31 @@ const MODULE_TIER_PRESETS: Record<string, { view: string[]; edit: string[]; mana
     view: ["users.view"],
     edit: ["users.view"],
     manage: ["users.view", "users.manage"],
+  },
+  targets: {
+    view: ["targets.view"],
+    edit: ["targets.view", "targets.edit"],
+    manage: ["targets.view", "targets.edit", "targets.manage"],
+  },
+  incentives: {
+    view: [],
+    edit: ["incentives.manage"],
+    manage: ["incentives.manage"],
+  },
+  company: {
+    view: [],
+    edit: ["company.manage"],
+    manage: ["company.manage"],
+  },
+  taxonomy: {
+    view: [],
+    edit: ["taxonomy.manage"],
+    manage: ["taxonomy.manage"],
+  },
+  finance: {
+    view: [],
+    edit: ["finance.manage"],
+    manage: ["finance.manage"],
   },
   professional_services: {
     view: ["professional_services.view"],
