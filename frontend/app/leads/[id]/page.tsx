@@ -884,6 +884,21 @@ export default function LeadDetailPage() {
     }
   });
 
+  const transcriptsList = transcriptsData?.data || [];
+
+  useEffect(() => {
+    if (evaluatingTranscriptId && Array.isArray(transcriptsList) && transcriptsList.length > 0) {
+      const active = transcriptsList.find((t: any) => t.id === evaluatingTranscriptId);
+      if (active && (active.evaluation_status === 'evaluated' || active.evaluation_status === 'failed')) {
+        setEvaluatingTranscriptId(null);
+        if (active.evaluation_status === 'evaluated') {
+          setExpandedEvalId(active.id);
+          refetchEvaluations();
+        }
+      }
+    }
+  }, [transcriptsList, evaluatingTranscriptId, refetchEvaluations]);
+
   const { data: businessCategoriesData } = useQuery({
     queryKey: ['business-categories'],
     queryFn: () => apiFetch('/business-categories').then(res => res.json())
@@ -1703,7 +1718,6 @@ export default function LeadDetailPage() {
   const progressData      = progress || {};
   const activitiesList    = activities?.data || [];
   const meetingsList      = meetings?.data || [];
-  const transcriptsList   = transcriptsData?.data || [];
   const evaluationsList   = evaluationsData?.data || [];
   const funnelStages      = funnelStagesData?.data || [];
   const currentStageId    = leadData?.funnelStage?.id || leadData?.funnel_stage_id || leadData?.current_funnel_stage?.id;
@@ -1713,19 +1727,6 @@ export default function LeadDetailPage() {
   const latestMeetingBantc = meetingActivities.find((activity: any) =>
     activity.budget || activity.authority || activity.needs || activity.timeline || activity.competitor
   );
-
-  useEffect(() => {
-    if (evaluatingTranscriptId && Array.isArray(transcriptsList) && transcriptsList.length > 0) {
-      const active = transcriptsList.find((t: any) => t.id === evaluatingTranscriptId);
-      if (active && (active.evaluation_status === 'evaluated' || active.evaluation_status === 'failed')) {
-        setEvaluatingTranscriptId(null);
-        if (active.evaluation_status === 'evaluated') {
-          setExpandedEvalId(active.id);
-          refetchEvaluations();
-        }
-      }
-    }
-  }, [transcriptsList, evaluatingTranscriptId, refetchEvaluations]);
 
   const ACTIVITY_TYPES = [
     'Follow Up', 'Meeting', 'Demo', 'Proposal Sent', 'Negotiation',
