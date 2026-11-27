@@ -41,6 +41,46 @@ const nextConfig: NextConfig = {
         destination: "https://leadsy.tech/:path*",
         permanent: true,
       },
+      {
+        source: "/settings/kpi-targets",
+        destination: "/settings/targets/kpi",
+        permanent: true,
+      },
+      {
+        source: "/settings/email",
+        destination: "/settings/integrations?tab=email",
+        permanent: true,
+      },
+      {
+        source: "/settings/integrations/digital-signature",
+        destination: "/settings/integrations?tab=mekari_sign",
+        permanent: true,
+      },
+      {
+        source: "/settings/integrations/mekari-sign",
+        destination: "/settings/integrations?tab=mekari_sign",
+        permanent: true,
+      },
+      {
+        source: "/settings/webhooks",
+        destination: "/settings/integrations?tab=webhooks",
+        permanent: true,
+      },
+      {
+        source: "/whatsapp/local",
+        destination: "/inbox?channel=whatsapp&engine=local",
+        permanent: true,
+      },
+      {
+        source: "/whatsapp",
+        destination: "/inbox?channel=whatsapp",
+        permanent: true,
+      },
+      {
+        source: "/whatsapp/qontak",
+        destination: "/inbox?channel=whatsapp&engine=qontak",
+        permanent: true,
+      },
     ];
   },
   async headers() {

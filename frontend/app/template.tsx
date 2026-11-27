@@ -9,19 +9,22 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { apiFetch } from "@/lib/apiFetch";
 import { canAccessPath } from "@/lib/permissions";
 
+let hasClientMounted = false;
+
 export default function Template({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
   const setAuth = useAuthStore((state) => state.setAuth);
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(() => hasClientMounted);
   const isLandingRoute = pathname === "/";
   const isOfflineRoute = pathname === "/offline";
   const isPublicAuthRoute = pathname === "/login" || pathname.startsWith("/auth/");
   const isPublicRoute = isLandingRoute || isOfflineRoute || isPublicAuthRoute;
 
   useEffect(() => {
+    hasClientMounted = true;
     setMounted(true);
   }, []);
 
@@ -32,6 +35,12 @@ export default function Template({ children }: { children: React.ReactNode }) {
       router.push("/dashboard");
     }
   }, [mounted, token, isPublicRoute, isPublicAuthRoute, router]);
+
+  useEffect(() => {
+    if (mounted && user && pathname !== "/dashboard" && !canAccessPath(pathname, user)) {
+      router.push("/dashboard");
+    }
+  }, [mounted, user, pathname, router]);
 
   useEffect(() => {
     if (!mounted || !token || isPublicAuthRoute || isOfflineRoute) return;
@@ -58,7 +67,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
   }, [mounted, token, isPublicAuthRoute, isOfflineRoute, user?.role?.permissions?.length, setAuth]);
 
   if (!mounted) {
-    return <div className="min-h-screen bg-background" />; // Stop hydration mismatch visually
+    return <div className="min-h-screen bg-background" />; // Stop hydration mismatch visually on initial page load
   }
 
   // Bypass the app shell for public & offline fallback routes
@@ -72,7 +81,6 @@ export default function Template({ children }: { children: React.ReactNode }) {
   }
 
   if (user && pathname !== "/dashboard" && !canAccessPath(pathname, user)) {
-    router.push("/dashboard");
     return <div className="min-h-screen bg-background" />;
   }
 

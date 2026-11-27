@@ -46,7 +46,7 @@ export default function ErrorBoundary({
             Coba Muat Ulang
           </button>
           <Link
-            href="/"
+            href="/dashboard"
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--surface-default)] text-[var(--text-primary)] font-medium text-sm hover:bg-[var(--surface-subtle)] transition-colors"
           >
             <Home className="w-4 h-4" />
