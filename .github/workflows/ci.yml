@@ -51,9 +51,13 @@ jobs:
             "find app bootstrap config database routes tests -name '*.php' -print0 | xargs -0 -n 1 php -l"
 
       - name: Composer Install and Unit Tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker run --rm -v "$PWD/backend:/var/www/html" -w /var/www/html composer:2 \
-            composer install --ignore-platform-reqs --prefer-dist --no-interaction
+          docker run --rm -v "$PWD/backend:/var/www/html" -w /var/www/html \
+            -e COMPOSER_AUTH="{\"github-oauth\": {\"github.com\": \"$GITHUB_TOKEN\"}}" \
+            composer:2 \
+            sh -c "composer install --ignore-platform-reqs --prefer-dist --no-interaction --no-progress || (sleep 5 && composer install --ignore-platform-reqs --prefer-dist --no-interaction --no-progress)"
           docker run --rm -v "$PWD/backend:/var/www/html" -w /var/www/html \
             -e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: \
             php:8.2.35-cli sh -c "cp -n .env.example .env && php artisan key:generate && php artisan test --testsuite=Unit && php artisan test --filter ExampleTest"
