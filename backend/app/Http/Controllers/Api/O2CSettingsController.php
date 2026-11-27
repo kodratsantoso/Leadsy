@@ -345,4 +345,3 @@ class O2CSettingsController extends Controller
         });
     }
 }
-}

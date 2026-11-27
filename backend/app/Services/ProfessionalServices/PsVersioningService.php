@@ -19,7 +19,7 @@ class PsVersioningService
     /**
      * Create an immutable JSON snapshot of the current estimation state.
      */
-    public function createSnapshot(PsEstimation $estimation, string $label, string $reason = null, ?int $userId = null): PsEstimationVersion
+    public function createSnapshot(PsEstimation $estimation, string $label, ?string $reason = null, ?int $userId = null): PsEstimationVersion
     {
         // Refresh with all relationships needed for a complete snapshot
         $estimation->load([
