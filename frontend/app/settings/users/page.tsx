@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2, Upload, KeyRound, ShieldAlert } from "lucide-react";
+import { Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2, Upload, KeyRound, ShieldAlert, Layers, Package, Users as UsersIcon, Briefcase, MessageSquare, Bot, Sliders, History, MapPin, ChevronDown, ChevronRight, SlidersHorizontal, CheckCircle2, ShieldCheck } from "lucide-react";
 
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Badge } from "@/components/ui/badge";
@@ -102,6 +102,112 @@ const roleFormDefaults: RoleFormState = {
   permissions: [],
 };
 
+const MODULE_METADATA: Record<string, { label: string; description: string; icon: React.ComponentType<{ className?: string }> }> = {
+  leads: {
+    label: "Leads & Sales Pipeline",
+    description: "Prospek B2B, kualifikasi otomatis, profiling AI, import/export, dan deduplikasi",
+    icon: Layers,
+  },
+  products: {
+    label: "Product Catalog",
+    description: "Katalog produk dan solusi bisnis, spesifikasi teknis, dan perbandingan",
+    icon: Package,
+  },
+  users: {
+    label: "Users & Roles RBAC",
+    description: "Manajemen akun pengguna, struktur hierarki tim, dan penetapan role",
+    icon: UsersIcon,
+  },
+  professional_services: {
+    label: "Professional Services (PSA)",
+    description: "Estimasi biaya proyek, rate card, persetujuan bertingkat, dan actual tracking",
+    icon: Briefcase,
+  },
+  whatsapp: {
+    label: "WhatsApp Communication",
+    description: "Interaksi chat pelanggan via WhatsApp Web personal dan Mekari Qontak API",
+    icon: MessageSquare,
+  },
+  ai: {
+    label: "AI Intelligence & Copilot",
+    description: "Konfigurasi engine LLM, prompt templates, testing console, dan monitoring",
+    icon: Bot,
+  },
+  integrations: {
+    label: "Integrations & System Settings",
+    description: "Koneksi sistem eksternal (Lark, Mekari Sign, Webhooks, Search Engine)",
+    icon: Sliders,
+  },
+  audit: {
+    label: "Audit Logs & Governance",
+    description: "Pelacakan riwayat aktivitas pengguna, perubahan data, dan log keamanan",
+    icon: History,
+  },
+  maps: {
+    label: "Maps & Territory",
+    description: "Visualisasi spasial sebaran lead, radius kantor, dan pemetaan teritori",
+    icon: MapPin,
+  },
+};
+
+const MODULE_TIER_PRESETS: Record<string, { view: string[]; edit: string[]; manage: string[] }> = {
+  leads: {
+    view: ["leads.view"],
+    edit: ["leads.view", "leads.create", "leads.edit"],
+    manage: ["leads.view", "leads.create", "leads.edit", "leads.delete", "leads.export", "leads.merge", "leads.ai_profiling"],
+  },
+  products: {
+    view: ["products.view"],
+    edit: ["products.view", "products.edit"],
+    manage: ["products.view", "products.edit"],
+  },
+  users: {
+    view: ["users.view"],
+    edit: ["users.view"],
+    manage: ["users.view", "users.manage"],
+  },
+  professional_services: {
+    view: ["professional_services.view"],
+    edit: ["professional_services.view", "professional_services.create", "professional_services.edit"],
+    manage: [
+      "professional_services.view",
+      "professional_services.create",
+      "professional_services.edit",
+      "professional_services.delete",
+      "professional_services.review",
+      "professional_services.approve",
+      "professional_services.manage_templates",
+      "professional_services.manage_rates",
+      "professional_services.manage_complexity",
+    ],
+  },
+  whatsapp: {
+    view: ["whatsapp.personal"],
+    edit: ["whatsapp.personal", "whatsapp.qontak"],
+    manage: ["whatsapp.personal", "whatsapp.qontak", "whatsapp.manage"],
+  },
+  ai: {
+    view: [],
+    edit: ["ai.manage"],
+    manage: ["ai.manage", "ai_testing.manage"],
+  },
+  integrations: {
+    view: [],
+    edit: ["integrations.manage"],
+    manage: ["integrations.manage"],
+  },
+  audit: {
+    view: ["audit.view"],
+    edit: ["audit.view"],
+    manage: ["audit.view"],
+  },
+  maps: {
+    view: ["maps.view"],
+    edit: ["maps.view"],
+    manage: ["maps.view"],
+  },
+};
+
 const tabItems = [
   { key: "users", label: "Users" },
   { key: "roles", label: "Roles" },
@@ -196,6 +302,97 @@ export default function SettingsUsersPage() {
   const [deleteRole, setDeleteRole] = useState<AppRole | null>(null);
   const [roleForm, setRoleForm] = useState<RoleFormState>(roleFormDefaults);
   const [roleError, setRoleError] = useState("");
+  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
+
+  const toggleExpandModule = (moduleKey: string) => {
+    setExpandedModules((prev) => ({
+      ...prev,
+      [moduleKey]: !prev[moduleKey],
+    }));
+  };
+
+  const getModuleTier = (
+    moduleKey: string,
+    modulePerms: RolePermission[],
+    selectedIds: number[]
+  ): "none" | "view" | "edit" | "manage" | "custom" => {
+    const activePermIds = modulePerms.map((p) => p.id).filter((id) => selectedIds.includes(id));
+    if (activePermIds.length === 0) return "none";
+    if (activePermIds.length === modulePerms.length) return "manage";
+
+    const presets = MODULE_TIER_PRESETS[moduleKey];
+    if (!presets) return "custom";
+
+    const activeNames = new Set(
+      modulePerms.filter((p) => selectedIds.includes(p.id)).map((p) => p.name)
+    );
+
+    const matchSet = (arr: string[]) => {
+      if (arr.length === 0) return activeNames.size === 0;
+      return arr.length === activeNames.size && arr.every((name) => activeNames.has(name));
+    };
+
+    if (matchSet(presets.manage)) return "manage";
+    if (matchSet(presets.edit)) return "edit";
+    if (matchSet(presets.view)) return "view";
+
+    return "custom";
+  };
+
+  const setModuleTier = (
+    moduleKey: string,
+    tier: "none" | "view" | "edit" | "manage",
+    modulePerms: RolePermission[]
+  ) => {
+    const modulePermIds = modulePerms.map((p) => p.id);
+    const presets = MODULE_TIER_PRESETS[moduleKey];
+
+    let targetNames: string[] = [];
+    if (tier === "manage") {
+      targetNames = modulePerms.map((p) => p.name);
+    } else if (tier === "edit") {
+      targetNames = presets?.edit || modulePerms.map((p) => p.name);
+    } else if (tier === "view") {
+      targetNames = presets?.view || (modulePerms[0] ? [modulePerms[0].name] : []);
+    } else {
+      targetNames = [];
+    }
+
+    const targetIds = modulePerms.filter((p) => targetNames.includes(p.name)).map((p) => p.id);
+
+    setRoleForm((current) => {
+      const remainingIds = current.permissions.filter((id) => !modulePermIds.includes(id));
+      return {
+        ...current,
+        permissions: Array.from(new Set([...remainingIds, ...targetIds])),
+      };
+    });
+  };
+
+  const setAllModulesTier = (tier: "none" | "view" | "manage") => {
+    if (tier === "none") {
+      setRoleForm((current) => ({ ...current, permissions: [] }));
+      return;
+    }
+    if (tier === "manage") {
+      setRoleForm((current) => ({
+        ...current,
+        permissions: permissions.map((p) => p.id),
+      }));
+      return;
+    }
+    if (tier === "view") {
+      const viewIds: number[] = [];
+      Object.entries(permissionsByModule).forEach(([modKey, modPerms]) => {
+        const presets = MODULE_TIER_PRESETS[modKey];
+        const viewNames = presets?.view || (modPerms[0] ? [modPerms[0].name] : []);
+        modPerms.forEach((p) => {
+          if (viewNames.includes(p.name)) viewIds.push(p.id);
+        });
+      });
+      setRoleForm((current) => ({ ...current, permissions: viewIds }));
+    }
+  };
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ["users"],
@@ -982,89 +1179,286 @@ export default function SettingsUsersPage() {
             setEditingRole(null);
             setRoleForm(roleFormDefaults);
             setRoleError("");
+            setExpandedModules({});
           }
         }}
-        title={editingRole ? "Edit Role" : "Create Role"}
-        description="Role CRUD and permission assignment now use the same standardized admin components."
-        size="lg"
+        title={editingRole ? `Edit Role: ${editingRole.display_name}` : "Create New Role"}
+        description="Kelola informasi role dan konfigurasi hak akses granular berdasarkan modul sistem Leadsy."
+        size="xl"
         footer={
           <>
             <Button variant="outline" onClick={() => setRoleModalOpen(false)}>
-              Cancel
+              Batal
             </Button>
             <Button onClick={submitRole} disabled={saveRoleMutation.isPending}>
               {saveRoleMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {editingRole ? "Save Role" : "Create Role"}
+              {editingRole ? "Simpan Perubahan Role" : "Buat Role Baru"}
             </Button>
           </>
         }
       >
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           {roleError ? <Badge variant="danger">{roleError}</Badge> : null}
-          {!editingRole ? (
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Role Slug</label>
-              <Input
-                value={roleForm.name}
+
+          {/* Role Basic Info */}
+          <div className="grid gap-4 rounded-xl border border-border bg-[color:var(--surface-subtle)] p-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {!editingRole ? (
+                <div className="grid gap-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Role Slug (ID Sistem)
+                  </label>
+                  <Input
+                    placeholder="misal: sales_specialist"
+                    value={roleForm.name}
+                    onChange={(event) =>
+                      setRoleForm((current) => ({
+                        ...current,
+                        name: event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"),
+                      }))
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">Identifier unik internal role (lowercase, tanpa spasi).</p>
+                </div>
+              ) : null}
+
+              <div className={cn("grid gap-1.5", editingRole && "md:col-span-2")}>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Nama Tampilan Role (Display Name)
+                </label>
+                <Input
+                  placeholder="misal: Solution Architect Manager"
+                  value={roleForm.display_name}
+                  onChange={(event) =>
+                    setRoleForm((current) => ({ ...current, display_name: event.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Deskripsi Tanggung Jawab & Lingkup Role
+              </label>
+              <Textarea
+                rows={2}
+                placeholder="Jelaskan peran tugas dan kewenangan operasional dari role ini..."
+                value={roleForm.description}
                 onChange={(event) =>
-                  setRoleForm((current) => ({ ...current, name: event.target.value }))
+                  setRoleForm((current) => ({ ...current, description: event.target.value }))
                 }
               />
             </div>
-          ) : null}
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Display Name</label>
-            <Input
-              value={roleForm.display_name}
-              onChange={(event) =>
-                setRoleForm((current) => ({ ...current, display_name: event.target.value }))
-              }
-            />
           </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Description</label>
-            <Textarea
-              value={roleForm.description}
-              onChange={(event) =>
-                setRoleForm((current) => ({ ...current, description: event.target.value }))
-              }
-            />
-          </div>
-          <div className="grid gap-3 rounded-2xl border border-border bg-[color:var(--surface-subtle)] p-4">
-            {Object.entries(permissionsByModule).map(([module, modulePermissions]) => (
-              <div key={module} className="grid gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  {module}
+
+          {/* Grouped Access Control Section */}
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                  Hak Akses Berdasarkan Modul (Access Control Matrix)
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Tentukan level kewenangan akses per modul menggunakan dropdown, atau klik Detail untuk konfigurasi granular.
                 </p>
-                <div className="grid gap-2 md:grid-cols-2">
-                  {modulePermissions.map((permission) => {
-                    const checked = roleForm.permissions.includes(permission.id);
-                    return (
-                      <label
-                        key={permission.id}
-                        className={cn(
-                          "flex items-start gap-3 rounded-xl border px-3 py-3 transition-colors",
-                          checked
-                            ? "border-[color:var(--brand)] bg-card"
-                            : "border-border bg-background"
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleRolePermission(permission.id)}
-                          className="mt-1"
-                        />
-                        <span className="space-y-1">
-                          <span className="block text-sm font-medium">{permission.display_name}</span>
-                          <span className="block text-xs text-muted-foreground">{permission.name}</span>
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
               </div>
-            ))}
+
+              {/* Quick Preset Buttons */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-medium text-muted-foreground mr-1">Terapkan Cepat:</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  className="text-[11px] h-7 px-2"
+                  onClick={() => setAllModulesTier("none")}
+                >
+                  Semua: None
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  className="text-[11px] h-7 px-2"
+                  onClick={() => setAllModulesTier("view")}
+                >
+                  Semua: View
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  className="text-[11px] h-7 px-2"
+                  onClick={() => setAllModulesTier("manage")}
+                >
+                  Semua: Manage
+                </Button>
+              </div>
+            </div>
+
+            {/* Modules Table / Rows */}
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+              {Object.entries(permissionsByModule).map(([moduleKey, modulePerms]) => {
+                const meta = MODULE_METADATA[moduleKey] || {
+                  label: moduleKey.charAt(0).toUpperCase() + moduleKey.slice(1),
+                  description: `Hak akses untuk modul ${moduleKey}`,
+                  icon: Sliders,
+                };
+                const IconComponent = meta.icon;
+                const currentTier = getModuleTier(moduleKey, modulePerms, roleForm.permissions);
+                const activeCount = modulePerms.filter((p) => roleForm.permissions.includes(p.id)).length;
+                const isExpanded = Boolean(expandedModules[moduleKey]);
+
+                return (
+                  <div key={moduleKey} className="transition-colors hover:bg-muted/30">
+                    <div className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between">
+                      {/* Left info */}
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[color:var(--brand-subtle)] text-[color:var(--brand)]">
+                          <IconComponent className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-foreground truncate">
+                              {meta.label}
+                            </span>
+                            {currentTier === "none" && (
+                              <Badge variant="outline" className="text-[10px] text-muted-foreground border-border px-1.5 py-0">
+                                None
+                              </Badge>
+                            )}
+                            {currentTier === "view" && (
+                              <Badge variant="info" className="text-[10px] px-1.5 py-0">
+                                View Only
+                              </Badge>
+                            )}
+                            {currentTier === "edit" && (
+                              <Badge variant="warning" className="text-[10px] px-1.5 py-0">
+                                View & Edit
+                              </Badge>
+                            )}
+                            {currentTier === "manage" && (
+                              <Badge variant="success" className="text-[10px] px-1.5 py-0">
+                                Full Manage
+                              </Badge>
+                            )}
+                            {currentTier === "custom" && (
+                              <Badge variant="neutral" className="text-[10px] px-1.5 py-0">
+                                Kustom ({activeCount}/{modulePerms.length})
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                            {meta.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right actions: Dropdown + Expand button */}
+                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        <div className="w-48">
+                          <Select
+                            size="sm"
+                            value={currentTier}
+                            onChange={(e) => {
+                              const val = e.target.value as "none" | "view" | "edit" | "manage";
+                              setModuleTier(moduleKey, val, modulePerms);
+                            }}
+                          >
+                            <option value="none">None (Tidak Ada Akses)</option>
+                            <option value="view">View (Hanya Lihat)</option>
+                            <option value="edit">Edit (Lihat & Edit)</option>
+                            <option value="manage">Manage (Kelola Penuh)</option>
+                            {currentTier === "custom" && (
+                              <option value="custom" disabled>
+                                Kustom ({activeCount} aktif)
+                              </option>
+                            )}
+                          </Select>
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="xs"
+                          className="h-8 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={() => toggleExpandModule(moduleKey)}
+                        >
+                          <ChevronDown
+                            className={cn(
+                              "h-3.5 w-3.5 transition-transform duration-200",
+                              isExpanded && "rotate-180"
+                            )}
+                          />
+                          <span>{isExpanded ? "Tutup" : "Detail"}</span>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Expandable Granular Checkboxes Drawer */}
+                    {isExpanded && (
+                      <div className="border-t border-border/60 bg-[color:var(--surface-subtle)]/70 p-3.5">
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-[11px] font-medium text-muted-foreground">
+                            Izin granular modul {meta.label} ({activeCount} dari {modulePerms.length} aktif):
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className="text-[11px] text-[color:var(--brand)] hover:underline"
+                              onClick={() => setModuleTier(moduleKey, "manage", modulePerms)}
+                            >
+                              Pilih Semua
+                            </button>
+                            <span className="text-[11px] text-muted-foreground">•</span>
+                            <button
+                              type="button"
+                              className="text-[11px] text-muted-foreground hover:underline"
+                              onClick={() => setModuleTier(moduleKey, "none", modulePerms)}
+                            >
+                              Kosongkan
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                          {modulePerms.map((permission) => {
+                            const isChecked = roleForm.permissions.includes(permission.id);
+                            return (
+                              <label
+                                key={permission.id}
+                                className={cn(
+                                  "flex items-start gap-2.5 rounded-lg border p-2.5 transition-colors cursor-pointer select-none",
+                                  isChecked
+                                    ? "border-[color:var(--brand)] bg-card shadow-xs"
+                                    : "border-border/70 bg-background/80 hover:border-border"
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleRolePermission(permission.id)}
+                                  className="mt-0.5 rounded border-gray-300 text-[color:var(--brand)] focus:ring-[color:var(--brand)]"
+                                />
+                                <div className="min-w-0 space-y-0.5">
+                                  <span className="block text-xs font-medium text-foreground truncate">
+                                    {permission.display_name}
+                                  </span>
+                                  <span className="block text-[10px] text-muted-foreground font-mono truncate">
+                                    {permission.name}
+                                  </span>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </Modal>
