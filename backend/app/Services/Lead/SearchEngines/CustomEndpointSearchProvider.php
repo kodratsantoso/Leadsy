@@ -65,14 +65,14 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
             ];
         }
 
-        $queries = $this->buildSearchQueries($lead);
+        $queries = array_slice($this->buildSearchQueries($lead), 0, 3);
         $candidates = [];
         $executedQueries = [];
 
         foreach ($queries as $query) {
             $executedQueries[] = $query;
             try {
-                $client = Http::timeout(20);
+                $client = Http::timeout(10);
                 $apiKey = $this->getApiKey($tenantId);
                 $headerName = $this->getHeaderName($tenantId);
                 $authType = $this->getAuthType($tenantId);
@@ -87,13 +87,28 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
 
                 $method = $this->getHttpMethod($tenantId);
                 if ($method === 'GET') {
-                    $params = ['q' => $query, 'format' => 'json'];
+                    $params = [
+                        'q' => $query,
+                        'query' => $query,
+                        'search_query' => $query,
+                        'keyword' => $query,
+                        'format' => 'json',
+                    ];
                     if (strcasecmp($authType, 'QueryParam') === 0 && !empty($apiKey)) {
                         $params['key'] = $apiKey;
                     }
                     $response = $client->get($endpoint, $params);
                 } else {
-                    $payload = ['q' => $query, 'query' => $query, 'format' => 'json'];
+                    $payload = [
+                        'q' => $query,
+                        'query' => $query,
+                        'search_query' => $query,
+                        'keyword' => $query,
+                        'text' => $query,
+                        'format' => 'json',
+                        'page' => 1,
+                        'page_size' => 15,
+                    ];
                     $response = $client->asJson()->post($endpoint, $payload);
                 }
 
@@ -106,21 +121,49 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
                 $items = $this->extractItemsFromResponse($json);
 
                 foreach ($items as $item) {
-                    $link = (string) ($item['url'] ?? $item['Url'] ?? $item['URL'] ?? $item['link'] ?? $item['Link'] ?? $item['href'] ?? '');
+                    if (!is_array($item)) {
+                        continue;
+                    }
+
+                    $link = (string) (
+                        $item['url'] ?? $item['Url'] ?? $item['URL'] ??
+                        $item['link'] ?? $item['Link'] ?? $item['href'] ??
+                        $item['link_url'] ?? $item['target_url'] ?? $item['site_url'] ??
+                        $item['web_url'] ?? $item['doc_url'] ?? $item['page_url'] ??
+                        $item['uri'] ?? $item['source_url'] ?? ''
+                    );
+
+                    $snippet = trim((string) (
+                        $item['snippet'] ?? $item['Snippet'] ?? $item['content'] ??
+                        $item['Content'] ?? $item['description'] ?? $item['Description'] ??
+                        $item['summary'] ?? $item['Summary'] ?? $item['text'] ??
+                        $item['abstract'] ?? $item['body'] ?? ''
+                    ));
+
+                    // If URL is not directly linkedin.com/in/, check if snippet or item text contains a LinkedIn profile URL
+                    if (!str_contains($link, 'linkedin.com/in/')) {
+                        if (preg_match('#https?://(?:[a-z]{2,3}\.)?linkedin\.com/in/[a-zA-Z0-9._%-]+/?#i', $snippet . ' ' . json_encode($item), $urlMatch)) {
+                            $link = $urlMatch[0];
+                        }
+                    }
+
                     $normalizedUrl = $this->normalizeLinkedinUrl($link);
                     if (!$normalizedUrl) {
                         continue;
                     }
 
                     $id = $this->extractLinkedinId($normalizedUrl);
-                    $titleRaw = (string) ($item['title'] ?? $item['Title'] ?? '');
+                    $titleRaw = (string) (
+                        $item['title'] ?? $item['Title'] ?? $item['name'] ??
+                        $item['Name'] ?? $item['header'] ?? $item['caption'] ??
+                        $item['subject'] ?? ''
+                    );
                     $parsed = $this->parseLinkedinTitle($titleRaw);
 
                     if (empty($parsed['name'])) {
                         continue;
                     }
 
-                    $snippet = trim((string) ($item['snippet'] ?? $item['Snippet'] ?? $item['content'] ?? $item['Content'] ?? $item['description'] ?? $item['Description'] ?? $item['summary'] ?? $item['Summary'] ?? ''));
                     $snippetEmails = $this->extractEmailsFromText($snippet);
 
                     $candidates[] = [
@@ -158,7 +201,7 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
             return [];
         }
 
-        // Standard BytePlus Search Infinity patterns
+        // Standard BytePlus Search Infinity patterns & variations
         if (isset($json['Result']['Data']) && is_array($json['Result']['Data'])) {
             return $json['Result']['Data'];
         }
@@ -171,11 +214,39 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
         if (isset($json['Result']['items']) && is_array($json['Result']['items'])) {
             return $json['Result']['items'];
         }
+        if (isset($json['Result']['Records']) && is_array($json['Result']['Records'])) {
+            return $json['Result']['Records'];
+        }
+        if (isset($json['Result']['records']) && is_array($json['Result']['records'])) {
+            return $json['Result']['records'];
+        }
         if (isset($json['result']['data']) && is_array($json['result']['data'])) {
             return $json['result']['data'];
         }
         if (isset($json['result']['items']) && is_array($json['result']['items'])) {
             return $json['result']['items'];
+        }
+        if (isset($json['result']['records']) && is_array($json['result']['records'])) {
+            return $json['result']['records'];
+        }
+
+        // Nested in data.*
+        if (isset($json['data']) && is_array($json['data'])) {
+            if (isset($json['data']['items']) && is_array($json['data']['items'])) {
+                return $json['data']['items'];
+            }
+            if (isset($json['data']['results']) && is_array($json['data']['results'])) {
+                return $json['data']['results'];
+            }
+            if (isset($json['data']['records']) && is_array($json['data']['records'])) {
+                return $json['data']['records'];
+            }
+            if (isset($json['data']['list']) && is_array($json['data']['list'])) {
+                return $json['data']['list'];
+            }
+            if (array_is_list($json['data'])) {
+                return $json['data'];
+            }
         }
 
         // Standard patterns in web search APIs (SearXNG, Google SERP JSON, Tavily, etc.)
@@ -188,8 +259,11 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
         if (isset($json['items']) && is_array($json['items'])) {
             return $json['items'];
         }
-        if (isset($json['data']) && is_array($json['data'])) {
-            return $json['data'];
+        if (isset($json['hits']) && is_array($json['hits'])) {
+            return $json['hits'];
+        }
+        if (isset($json['documents']) && is_array($json['documents'])) {
+            return $json['documents'];
         }
         if (isset($json['Result']) && is_array($json['Result']) && array_is_list($json['Result'])) {
             return $json['Result'];

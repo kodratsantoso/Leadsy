@@ -539,7 +539,7 @@ export default function LoginPage() {
           </div>
 
           {/* Hero Headline */}
-          <h1 className="text-3xl sm:text-4xl lg:text-[40px] xl:text-[46px] 2xl:text-[50px] font-extrabold tracking-tight leading-[1.14] text-white mb-4 max-w-4xl">
+          <h1 className="font-display text-3xl sm:text-4xl lg:text-[40px] xl:text-[46px] 2xl:text-[50px] font-extrabold tracking-tight leading-[1.14] text-white mb-4 max-w-4xl">
             {t.headlinePart1}{" "}
             <span className="bg-gradient-to-r from-purple-400 via-violet-300 to-indigo-300 bg-clip-text text-transparent">
               {t.headlinePart2}
@@ -898,7 +898,7 @@ export default function LoginPage() {
                 priority
               />
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white">
               {mode === "login" ? t.authTitle : "Two-Factor Authentication (2FA)"}
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-sm mx-auto">

@@ -605,9 +605,9 @@ export default function IndustryNewsletterPage() {
                 <Newspaper className="h-4 w-4" />
                 <span>INDUSTRY BRIEFING & ENTITY RADAR</span>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                 {currentIndustryOption?.name || "Select Target Industry"}{" "}
-                <span className="font-normal text-muted-foreground">Intelligence Edition</span>
+                <span className="font-display font-normal text-muted-foreground text-xl sm:text-2xl">Intelligence Edition</span>
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Aggregated commercial press coverage for brands and corporations in this sector. Initial discovery fetches and indexes news into PostgreSQL so subsequent reads load instantaneously.

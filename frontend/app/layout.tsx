@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { leadsyLinkPreviewMetadata } from "@/lib/link-preview-metadata";
+import { fontVariables } from "@/lib/fonts";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -24,12 +25,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
       <head>
         {/* Anti-flash: apply stored theme before first paint */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="font-sans antialiased">
+      <body className="font-interface antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

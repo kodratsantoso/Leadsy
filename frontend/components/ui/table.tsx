@@ -38,7 +38,7 @@ function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTableRowElem
 }
 
 function TableHeaderCell({ className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th className={cn("px-5 py-3 font-medium", className)} {...props} />;
+  return <th className={cn("text-table-header px-5 py-3 font-medium", className)} {...props} />;
 }
 
 export type SortDirection = "asc" | "desc" | null;

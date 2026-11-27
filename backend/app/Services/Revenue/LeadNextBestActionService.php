@@ -140,20 +140,31 @@ class LeadNextBestActionService
         $daysInactive = $lastActivity ? Carbon::parse($lastActivity->created_at)->diffInDays(now()) : 999;
 
         // Check if there is an overdue follow-up
-        $overdueFollowUp = $lead->activities()
-            ->whereNotNull('next_follow_up_date')
-            ->where('next_follow_up_date', '<', now())
+        $overdueFollowUp = $lead->followUps()
+            ->where('due_date', '<', now())
             ->where('status', '!=', 'completed')
-            ->latest('next_follow_up_date')
+            ->latest('due_date')
             ->first();
 
+        if (! $overdueFollowUp) {
+            $overdueFollowUp = $lead->activities()
+                ->whereNotNull('next_follow_up_date')
+                ->where('next_follow_up_date', '<', now())
+                ->where(function ($q) {
+                    $q->whereNull('outcome')->orWhere('outcome', '!=', 'completed');
+                })
+                ->latest('next_follow_up_date')
+                ->first();
+        }
+
         if ($overdueFollowUp) {
+            $followUpDate = $overdueFollowUp->due_date ?? $overdueFollowUp->next_follow_up_date;
             $actions[] = [
                 'id' => 'nba_overdue_followup',
                 'title' => 'Jadwal Follow-up Sudah Terlewat (Overdue)',
                 'priority' => 'urgent',
                 'category' => 'risk_mitigation',
-                'reasoning' => 'Terdapat agenda follow-up bertanggal ' . Carbon::parse($overdueFollowUp->next_follow_up_date)->format('d M Y') . ' yang belum diselesaikan. Hubungi prospek segera untuk menjaga momentum.',
+                'reasoning' => 'Terdapat agenda follow-up bertanggal ' . Carbon::parse($followUpDate)->format('d M Y') . ' yang belum diselesaikan. Hubungi prospek segera untuk menjaga momentum.',
                 'impact_score' => 95,
                 'action_type' => 'navigate_tab',
                 'action_payload' => ['tab' => 'activities'],

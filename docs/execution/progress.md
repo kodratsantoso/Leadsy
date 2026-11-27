@@ -1004,3 +1004,19 @@ Now accepts `?status=active` query param for filtering.
 - Add to Leads creates `LeadProductMatch` with fit context
 - AI uses `geo_product_fit_analysis` feature route from Settings → AI Defaults
 - No regression to existing map rendering
+
+## Phase 17: Centralized Typography Design System Migration & System Stabilization (Completed ✅)
+
+### Summary
+Migrated Leadsy from unconfigured fallback typography into a centralized, modern, 4-tier enterprise SaaS typography architecture:
+1. **Display Typography (`Plus Jakarta Sans`)**: Applied to headlines, page titles, section titles, login, and "Intelligence Edition" branding.
+2. **Interface Typography (`Geist Sans`)**: Default inherited web application font across all navigation, sidebars, dashboard cards, data tables, form inputs, buttons, and dialogs.
+3. **Technical Typography (`Geist Mono`)**: System logs, API endpoints, JSON payloads, record IDs, webhooks.
+4. **Document Typography (`Verdana 10pt`)**: DomPDF Blade document templates.
+5. **Numeric Values**: Strict tabular lining figures (`font-variant-numeric: tabular-nums lining-nums`) for currency and metrics.
+
+### System Stabilization Fixes
+1. **Resolved Next Best Actions 500 error**: Fixed SQL query in `LeadNextBestActionService.php` that attempted to filter by non-existent `status` column on `lead_activities` table.
+2. **Optimized Deep Search (PIC Discovery)**: Enhanced `CustomEndpointSearchProvider.php` and `ContactDeepSearchService.php` with robust BytePlus/SERP payload parsing, reduced timeouts (8s), and eliminated blocking Yahoo scraping fallback to avoid 504 gateway timeouts.
+3. **Type-Safety & Build Verification**: Completed Next.js 15 build with 94 static/dynamic routes passing cleanly and 0 TypeScript errors.
+

@@ -553,3 +553,21 @@
 - [x] GEO-020: Update `docs/execution/progress.md` — Phase 16 summary
 - [x] GEO-021: Update `docs/execution/decisions.md` — ADR-016, ADR-017, ADR-018
 - [x] GEO-022: Update `docs/execution/tasks.md` — Phase 16 task list
+
+## Phase 17: Centralized Typography Design System Migration & System Stabilization (Completed ✅)
+
+### Typography Architecture & SSOT
+- [x] TYPO-001: Establish centralized font loading layer via Next.js `next/font/google` in `frontend/lib/fonts.ts` (Plus Jakarta Sans, Geist Sans, Geist Mono).
+- [x] TYPO-002: Inject `--font-display`, `--font-interface`, `--font-technical` at root `<html>` in `frontend/app/layout.tsx`.
+- [x] TYPO-003: Expand `@theme inline` in `frontend/app/globals.css` with semantic font variables and complete `.text-display-*`, `.text-page-title`, `.text-section-title`, `.text-kpi-value`, and `.numeric-value` utilities.
+- [x] TYPO-004: Create shared reusable typography primitives in `frontend/components/ui/typography.tsx` (`DisplayHero`, `DisplayLogin`, `PageTitle`, `SectionTitle`, `BrandEdition`, `CardHeading`, `KpiValue`, `TechnicalText`, `NumericValue`).
+- [x] TYPO-005: Integrate shared UI primitives (`CardTitle`, `TableHeaderCell`) and key marketing/auth pages (`LandingHero`, `login/page.tsx`, `newsletter/page.tsx`).
+- [x] TYPO-006: Standardize backend document typography to Verdana 10pt across DomPDF Blade templates (`ps-estimation-document`, `ps-bast-document`, `commercial-invoice`, `meeting-summary`).
+
+### Runtime Error Fixes & Stabilization
+- [x] STAB-001: Resolve Next Best Actions 500 error in `LeadNextBestActionService.php` caused by undefined `status` column on `lead_activities` table.
+- [x] STAB-002: Optimize Deep Search PIC Discovery in `CustomEndpointSearchProvider.php` and `ContactDeepSearchService.php` with robust BytePlus payload parsing, fast timeouts (8s), and elimination of slow blocking Yahoo fallback scraping.
+- [x] STAB-003: Improve Deep Search modal feedback in `frontend/app/leads/[id]/page.tsx` with informative `info` state and actionable guidance instead of generic failure banners.
+- [x] STAB-004: Clean up duplicate `favicon.ico` in public directory to resolve Next.js conflicting public file warnings.
+- [x] STAB-005: Update governance and design system reference documents (`DESIGN_SYSTEM.md`, `frontend/docs/decisions.md`, `frontend/docs/ssot.md`, `frontend/AGENTS.md`).
+

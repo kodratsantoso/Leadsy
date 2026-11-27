@@ -5,10 +5,10 @@
     <title>{{ $documentTitle }}</title>
     <style>
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-family: 'Verdana', Geneva, sans-serif;
             color: #333;
             line-height: 1.5;
-            font-size: 12px;
+            font-size: 10pt;
             margin: 0;
             padding: 0;
         }

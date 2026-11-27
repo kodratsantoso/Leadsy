@@ -5,8 +5,9 @@
     <title>Meeting Summary - {{ $documentId }}</title>
     <style>
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-family: 'Verdana', Geneva, sans-serif;
             color: #1e293b;
+            font-size: 10pt;
             line-height: 1.5;
             margin: 0;
             padding: 20px;

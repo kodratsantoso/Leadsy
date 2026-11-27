@@ -177,16 +177,16 @@ If no profiles are found, return { \"candidates\": [] }.";
             }
         }
 
-        // Step 4: Fallback to Yahoo scraping if previous steps returned empty
-        if (empty($rawResults)) {
-            $queries = $this->buildQueries($lead);
+        // Step 4: Fallback to Yahoo scraping ONLY if no pipeline engine was configured (legacy fallback)
+        $hasConfiguredEngines = collect($pipelineTried)->contains(fn ($e) => ($e['status'] ?? '') !== 'skipped_not_configured');
+        if (empty($rawResults) && ! $hasConfiguredEngines) {
+            $queries = array_slice($this->buildQueries($lead), 0, 2);
             foreach ($queries as $query) {
                 $html = $this->scrapeYahoo($query);
                 if ($html !== null) {
                     $parsed = $this->parseYahooHtml($html, $query);
                     $rawResults = array_merge($rawResults, $parsed);
                 }
-                usleep(self::REQUEST_DELAY_MS * 1000);
             }
         }
 

@@ -9,8 +9,8 @@
             margin: 18mm 16mm 20mm 16mm;
         }
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 9.5pt;
+            font-family: 'Verdana', Geneva, sans-serif;
+            font-size: 10pt;
             line-height: 1.45;
             color: #1e293b;
             background: #ffffff;

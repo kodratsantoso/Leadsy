@@ -66,6 +66,21 @@ These rules apply to all UI work under:
   - charts
 - If a new token is needed, add it in `frontend/app/globals.css` first.
 
+## Typography Architecture Enforcement
+
+- All font definitions are centralized in `frontend/lib/fonts.ts` using `next/font/google`.
+- The platform follows a 4-tier Single Source of Truth typography hierarchy:
+  - **Display (`--font-display` / `font-display`)**: Plus Jakarta Sans for hero banners, page titles, section headers, login, and "Intelligence Edition" branding.
+  - **Interface (`--font-interface` / `font-interface`)**: Geist Sans as the default inherited font for body, navigation, cards, tables, forms, and dialogs.
+  - **Technical (`--font-technical` / `font-technical` / `font-mono`)**: Geist Mono for IDs, code snippets, JSON, webhooks, and logs.
+  - **Document (PDF)**: Verdana (10 pt default base) for official DomPDF Blade exports. Never load Verdana into the web app.
+  - **Numeric Values**: Currency and numerical metrics must enforce `.numeric-value` (`tabular-nums lining-nums`) or `<NumericValue>`.
+- **STRICTLY PROHIBITED**:
+  - Independent Google Fonts `<link>` tags or external font stylesheets on individual pages.
+  - Calling `next/font` separately inside page components.
+  - Inline `style={{ fontFamily: '...' }}` declarations.
+  - Page-level or component-level font overrides. Use semantic classes (`.text-page-title`, `.text-section-title`, `.text-brand-edition`) or shared primitives in `frontend/components/ui/typography.tsx`.
+
 ## Component Standards
 
 - Buttons must use `Button`.

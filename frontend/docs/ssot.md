@@ -4,6 +4,7 @@
 
 - Runtime UI source of truth: `frontend/`
 - Shared primitives source of truth: `frontend/components/ui`
+- Typography design tokens source of truth: `frontend/lib/fonts.ts` and `frontend/components/ui/typography.tsx`
 - Theme token source of truth: `frontend/app/globals.css`
 - Runtime shell source of truth: `frontend/components/layout/app-shell.tsx`
 

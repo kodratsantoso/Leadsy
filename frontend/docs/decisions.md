@@ -291,3 +291,17 @@
 - **Rationale**: Individual commission silos created friction between sales, solution architecture, and delivery. A collaborative model encourages shared ownership of revenue and delivery quality, while dynamic configuration prevents hardcoded policy drift.
 - **Impact**: Complete non-destructive database addition (`incentive_policies`, `role_incentive_settings`, `incentive_pools`, `incentive_contributors`). Backend calculation engine is 100% verified with automated tests. Frontend is type-safe and pre-rendered statically with zero errors.
 
+## ADR-039: Centralized Leadsy Typography Architecture Migration
+- **Date**: 2026-11-27
+- **Status**: Active
+- **Decision**: Centralized and standardized platform typography across the web application and document generation engines under strict SSOT principles:
+  1. **Display Typography (`--font-display`)**: Plus Jakarta Sans (weights 400, 500, 600, 700) for hero headlines, login, product positioning, page titles, section headings, and "Intelligence Edition" branding text.
+  2. **Interface Typography (`--font-interface`)**: Geist Sans (weights 400, 500, 600) as the default inherited font for application body, navigation, sidebar, dashboard cards, data tables, form inputs, buttons, dialogs, and KPI metrics.
+  3. **Technical Typography (`--font-technical`)**: Geist Mono (weights 400, 500, 600) for IDs, endpoints, code snippets, logs, webhooks.
+  4. **Document Typography**: Verdana (10 pt default base) for Quotation, Estimate, Sales Order, PS Estimation, BAST, and Invoice PDFs in DomPDF Blade templates. Never loaded globally into the web app.
+  5. **Numeric Values**: Strict tabular lining figures (`font-variant-numeric: tabular-nums lining-nums`) for currency and metrics.
+  6. **Infrastructure**: Loaded via Next.js `next/font/google` in `frontend/lib/fonts.ts` (self-hosted build-time assets, zero client CDN latency), injected at `<html>` via CSS variables, and exposed through `frontend/components/ui/typography.tsx`. Page-local font imports strictly prohibited.
+- **Rationale**: Previously, the application lacked centralized font loading, falling back to OS-default `system-ui`. Establishing a dedicated 4-tier typography system elevates Leadsy into a world-class, premium enterprise SaaS interface with high information density, sharp readability, and rock-solid architectural governance.
+- **Impact**: Full compliance across 94 Next.js routes with zero runtime layout shift, zero TypeScript errors, clean document generation, and centralized token governance.
+
+

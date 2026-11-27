@@ -8,22 +8,45 @@
 
 ## 1. Typography
 
-**Font Family:** Inter (variable font via `next/font/google`)
-- `--font-sans` / `--font-heading` → Inter, system-ui fallback stack
-- Applied globally on `<html>` via `@apply font-sans`
+Leadsy implements a centralized, four-tier Single Source of Truth (SSOT) typography architecture defined in `frontend/lib/fonts.ts` and consumed through CSS variables, Tailwind tokens, and `frontend/components/ui/typography.tsx`.
 
-| Role            | Class                        | Size  | Weight |
-|-----------------|------------------------------|-------|--------|
-| Page title      | `text-xl font-semibold`      | 20px  | 600    |
-| Section heading | `text-base font-semibold`    | 16px  | 600    |
-| Card heading    | `text-sm font-semibold`      | 14px  | 600    |
-| Body / default  | `text-sm`                    | 14px  | 400    |
-| Label / caption | `text-xs font-medium`        | 12px  | 500    |
-| Micro / badge   | `text-xs font-semibold`      | 12px  | 600    |
-| Muted text      | `text-sm text-muted-foreground` | 14px | 400  |
+### 1.1 Font Roles & Stacks
 
-**Line heights:** `leading-tight` (1.25) for headings · `leading-normal` (1.5) for body  
-**Letter spacing:** `tracking-wide` only for uppercase table headers (`uppercase tracking-wide`)
+1. **Display Typography (`--font-display` / `font-display`)**:
+   - **Font Family**: Plus Jakarta Sans (`next/font/google`, weights 400, 500, 600, 700)
+   - **Usage**: Landing page hero, login headlines, product positioning, page titles, section headings, marketing text, Intelligence Edition branding.
+2. **Interface Typography (`--font-interface` / `font-interface` / default `body`)**:
+   - **Font Family**: Geist Sans (`next/font/google`, weights 400, 500, 600)
+   - **Usage**: Default inherited font for entire web application, sidebars, dashboard cards, data tables, form inputs, buttons, dialogs, status badges, KPI values.
+3. **Technical Typography (`--font-technical` / `font-technical` / `font-mono`)**:
+   - **Font Family**: Geist Mono (`next/font/google`, weights 400, 500, 600)
+   - **Usage**: Record identifiers, API endpoints, JSON payloads, code snippets, logs, webhooks.
+4. **Document Typography (PDF / DomPDF)**:
+   - **Font Family**: Verdana (standard 10 pt base)
+   - **Usage**: Official PDF exports (Quotation, Estimate, Sales Order, PS Estimation, BAST, Invoice, Meeting Summary). Managed in Blade views, never loaded globally into the web app.
+
+### 1.2 Numeric Values Rule
+
+- All financial amounts, currency figures, and tabular metric tables MUST enforce tabular figures:
+  - Utility class: `.numeric-value` (`font-variant-numeric: tabular-nums lining-nums;`) or `<NumericValue>` component.
+
+### 1.3 Semantic Typography Scale
+
+| Semantic Role      | CSS Class / Component    | Font Family        | Size / Line-Height | Weight |
+|--------------------|--------------------------|--------------------|--------------------|--------|
+| Display Hero       | `.text-display-hero`     | Plus Jakarta Sans  | 36px / 1.15        | 700    |
+| Display Login      | `.text-display-login`    | Plus Jakarta Sans  | 28px / 1.2         | 700    |
+| Page Title         | `.text-page-title`       | Plus Jakarta Sans  | 22px / 1.25        | 600    |
+| Section Heading    | `.text-section-title`    | Plus Jakarta Sans  | 16px / 1.35        | 600    |
+| Brand Edition      | `.text-brand-edition`    | Plus Jakarta Sans  | 13px / 1.4         | 600    |
+| Card Heading       | `.text-card-title`       | Plus Jakarta Sans  | 14px / 1.35        | 600    |
+| KPI Value          | `.text-kpi-value`        | Geist Sans         | 24px / 1.2         | 600    |
+| Body / Default     | `.text-body`             | Geist Sans         | 14px / 1.5         | 400    |
+| Body Small         | `.text-body-small`       | Geist Sans         | 13px / 1.5         | 400    |
+| Table Header       | `.text-table-header`     | Geist Sans         | 11px / 1.4         | 600    |
+| Table Cell         | `.text-table-cell`       | Geist Sans         | 13px / 1.45        | 400    |
+| Form Label         | `.text-form-label`       | Geist Sans         | 12px / 1.4         | 500    |
+| Technical Text     | `.text-technical`        | Geist Mono         | 12px / 1.4         | 400/500|
 
 ---
 

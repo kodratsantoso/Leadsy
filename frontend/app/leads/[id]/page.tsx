@@ -378,7 +378,7 @@ function AddContactModal({
   mode: 'manual' | 'google' | 'linkedin' | 'deep';
   setMode: (mode: 'manual' | 'google' | 'linkedin' | 'deep') => void;
   candidates: GoogleContactCandidate[];
-  feedback: { type: 'success' | 'error'; msg: string; not_configured?: boolean } | null;
+  feedback: { type: 'success' | 'error' | 'info'; msg: string; not_configured?: boolean } | null;
   searching: boolean;
   addingCandidateId: number | null;
   saving: boolean;
@@ -484,11 +484,15 @@ function AddContactModal({
                 'rounded-xl border p-3.5 text-xs space-y-2',
                 feedback.type === 'success'
                   ? 'border-[var(--status-success)]/30 bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]'
+                  : feedback.type === 'info'
+                  ? 'border-indigo-500/30 bg-indigo-500/10 text-indigo-400'
                   : 'border-[var(--status-danger)]/30 bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]'
               )}>
                 <div className="flex items-start gap-2">
                   {feedback.type === 'success' ? (
                     <CheckCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  ) : feedback.type === 'info' ? (
+                    <Info className="h-4 w-4 shrink-0 mt-0.5 text-indigo-400" />
                   ) : (
                     <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                   )}
@@ -668,7 +672,7 @@ export default function LeadDetailPage() {
     message: string;
     details?: any;
   } | null>(null);
-  const [enrichmentFeedback, setEnrichmentFeedback] = useState<{ type: 'success' | 'error'; msg: string; not_configured?: boolean } | null>(null);
+  const [enrichmentFeedback, setEnrichmentFeedback] = useState<{ type: 'success' | 'error' | 'info'; msg: string; not_configured?: boolean } | null>(null);
 
   // Activity form state (controlled)
   const [showActivityModal, setShowActivityModal] = useState(false);
@@ -1224,7 +1228,7 @@ export default function LeadDetailPage() {
       const res = await apiFetch(`/leads/${leadId}/contact-enrichment/google-deep/search`, { method: 'POST' });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const errMsg = json?.message || json?.error?.message || (typeof json?.error === 'string' ? json?.error : null) || 'Failed to perform deep search';
+        const errMsg = json?.message || json?.error?.message || (typeof json?.error === 'string' ? json?.error : null) || (res.status === 504 ? 'Pencarian membutuhkan waktu terlalu lama (timeout). Silakan periksa koneksi Custom Search Endpoint.' : 'Gagal menjalankan Deep Search. Pastikan Search Engine Anda aktif di Settings.');
         const err = new Error(errMsg) as any;
         err.not_configured = json?.not_configured ?? (errMsg.toLowerCase().includes('belum ada') || errMsg.toLowerCase().includes('tidak dikonfigurasi') || errMsg.toLowerCase().includes('not configured'));
         throw err;
@@ -1233,9 +1237,10 @@ export default function LeadDetailPage() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['lead-deep-contact-candidates', leadId] });
+      const hasCandidates = (data?.data?.length || 0) > 0;
       setEnrichmentFeedback({
-        type: (data?.data?.length || 0) > 0 ? 'success' : 'error',
-        msg: data?.message || 'Deep search candidates loaded',
+        type: hasCandidates ? 'success' : 'info',
+        msg: data?.message || (hasCandidates ? 'Deep search candidates loaded' : 'Tidak ada profil PIC LinkedIn yang ditemukan untuk perusahaan ini.'),
         not_configured: data?.not_configured ?? false,
       });
     },
@@ -1243,7 +1248,7 @@ export default function LeadDetailPage() {
       const isNotConfigured = error?.not_configured || error?.message?.toLowerCase().includes('belum ada') || error?.message?.toLowerCase().includes('tidak dikonfigurasi') || error?.message?.toLowerCase().includes('not configured');
       setEnrichmentFeedback({
         type: 'error',
-        msg: error?.message || 'Failed to perform deep search',
+        msg: error?.message || 'Gagal menjalankan Deep Search. Pastikan Search Engine Anda aktif di Settings.',
         not_configured: isNotConfigured,
       });
     },
