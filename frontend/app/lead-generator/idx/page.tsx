@@ -18,7 +18,8 @@ import {
   Sparkles,
   CheckCircle2,
   RotateCcw,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Eye
 } from "lucide-react";
 import Link from "next/link";
 
@@ -572,13 +573,20 @@ export default function IdxGeneratorPage() {
                     />
                   </TableCell>
                   <TableCell className="font-medium">
-                    <Badge variant="outline" className="font-mono text-xs font-semibold tracking-wider">
-                      {company.idx_code}
-                    </Badge>
+                    <Link href={`/lead-generator/idx/${company.idx_code}`}>
+                      <Badge variant="outline" className="font-mono text-xs font-semibold tracking-wider hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors cursor-pointer">
+                        {company.idx_code}
+                      </Badge>
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-semibold text-sm">{company.company_name}</span>
+                      <Link
+                        href={`/lead-generator/idx/${company.idx_code}`}
+                        className="font-semibold text-sm hover:text-[var(--brand)] hover:underline inline-block"
+                      >
+                        {company.company_name}
+                      </Link>
                       {company.website && (
                         <a 
                           href={company.website.startsWith("http") ? company.website : `https://${company.website}`} 
@@ -604,32 +612,41 @@ export default function IdxGeneratorPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    {company.is_duplicate ? (
-                      <div className="flex items-center justify-end gap-2">
-                        <Badge variant="success" className="px-2.5 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-0 font-medium text-xs">
-                          <CheckCircle className="mr-1 h-3.5 w-3.5" />
-                          In Leads
-                        </Badge>
-                        {company.lead_id && (
-                          <Link href={`/leads/${company.lead_id}`} target="_blank" rel="noreferrer">
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground">
-                              View <ExternalLink className="ml-1 h-3 w-3" />
-                            </Button>
-                          </Link>
-                        )}
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => importMutation.mutate([company])}
-                        disabled={importMutation.isPending}
-                        className="h-8 text-xs font-medium"
-                      >
-                        <Plus className="mr-1.5 h-3.5 w-3.5" />
-                        Add
-                      </Button>
-                    )}
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Link href={`/lead-generator/idx/${company.idx_code}`}>
+                        <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground">
+                          <Eye className="mr-1 h-3.5 w-3.5" />
+                          Detail
+                        </Button>
+                      </Link>
+
+                      {company.is_duplicate ? (
+                        <>
+                          <Badge variant="success" className="px-2.5 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-0 font-medium text-xs">
+                            <CheckCircle className="mr-1 h-3.5 w-3.5" />
+                            In Leads
+                          </Badge>
+                          {company.lead_id && (
+                            <Link href={`/leads/${company.lead_id}`} target="_blank" rel="noreferrer">
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground">
+                                View <ExternalLink className="ml-1 h-3 w-3" />
+                              </Button>
+                            </Link>
+                          )}
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => importMutation.mutate([company])}
+                          disabled={importMutation.isPending}
+                          className="h-8 text-xs font-medium"
+                        >
+                          <Plus className="mr-1.5 h-3.5 w-3.5" />
+                          Add
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

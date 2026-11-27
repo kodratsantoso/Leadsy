@@ -166,6 +166,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\LeadGeneratorIdxController::class, 'index']);
         Route::get('/filters', [\App\Http\Controllers\Api\LeadGeneratorIdxController::class, 'filters']);
         Route::post('import', [\App\Http\Controllers\Api\LeadGeneratorIdxController::class, 'import']);
+        Route::get('/{code}', [\App\Http\Controllers\Api\LeadGeneratorIdxController::class, 'show']);
     });
 
     // Lead Generator - Industry Intelligence Newsletter
