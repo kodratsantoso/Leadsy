@@ -106,21 +106,21 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
                 $items = $this->extractItemsFromResponse($json);
 
                 foreach ($items as $item) {
-                    $link = (string) ($item['url'] ?? $item['link'] ?? '');
+                    $link = (string) ($item['url'] ?? $item['Url'] ?? $item['URL'] ?? $item['link'] ?? $item['Link'] ?? $item['href'] ?? '');
                     $normalizedUrl = $this->normalizeLinkedinUrl($link);
                     if (!$normalizedUrl) {
                         continue;
                     }
 
                     $id = $this->extractLinkedinId($normalizedUrl);
-                    $titleRaw = (string) ($item['title'] ?? '');
+                    $titleRaw = (string) ($item['title'] ?? $item['Title'] ?? '');
                     $parsed = $this->parseLinkedinTitle($titleRaw);
 
                     if (empty($parsed['name'])) {
                         continue;
                     }
 
-                    $snippet = trim((string) ($item['snippet'] ?? $item['content'] ?? $item['description'] ?? ''));
+                    $snippet = trim((string) ($item['snippet'] ?? $item['Snippet'] ?? $item['content'] ?? $item['Content'] ?? $item['description'] ?? $item['Description'] ?? $item['summary'] ?? $item['Summary'] ?? ''));
                     $snippetEmails = $this->extractEmailsFromText($snippet);
 
                     $candidates[] = [
@@ -158,7 +158,27 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
             return [];
         }
 
-        // Standard patterns in search APIs
+        // Standard BytePlus Search Infinity patterns
+        if (isset($json['Result']['Data']) && is_array($json['Result']['Data'])) {
+            return $json['Result']['Data'];
+        }
+        if (isset($json['Result']['data']) && is_array($json['Result']['data'])) {
+            return $json['Result']['data'];
+        }
+        if (isset($json['Result']['Items']) && is_array($json['Result']['Items'])) {
+            return $json['Result']['Items'];
+        }
+        if (isset($json['Result']['items']) && is_array($json['Result']['items'])) {
+            return $json['Result']['items'];
+        }
+        if (isset($json['result']['data']) && is_array($json['result']['data'])) {
+            return $json['result']['data'];
+        }
+        if (isset($json['result']['items']) && is_array($json['result']['items'])) {
+            return $json['result']['items'];
+        }
+
+        // Standard patterns in web search APIs (SearXNG, Google SERP JSON, Tavily, etc.)
         if (isset($json['results']) && is_array($json['results'])) {
             return $json['results'];
         }
@@ -170,6 +190,12 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
         }
         if (isset($json['data']) && is_array($json['data'])) {
             return $json['data'];
+        }
+        if (isset($json['Result']) && is_array($json['Result']) && array_is_list($json['Result'])) {
+            return $json['Result'];
+        }
+        if (isset($json['result']) && is_array($json['result']) && array_is_list($json['result'])) {
+            return $json['result'];
         }
 
         // If root is indexed array

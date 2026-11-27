@@ -481,23 +481,32 @@ function AddContactModal({
 
             {feedback ? (
               <div className={cn(
-                'rounded-xl border p-3 text-xs space-y-2',
+                'rounded-xl border p-3.5 text-xs space-y-2',
                 feedback.type === 'success'
                   ? 'border-[var(--status-success)]/30 bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]'
                   : 'border-[var(--status-danger)]/30 bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]'
               )}>
-                <p>{feedback.msg}</p>
-                {feedback.not_configured && (
-                  <div className="pt-2 border-t border-border/40">
-                    <Link
-                      href="/settings/integrations?tab=search_engines"
-                      className="inline-flex items-center gap-1.5 font-semibold text-indigo-500 hover:underline"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Buka Pengaturan Search &amp; PIC Discovery (Settings &gt; Integrations) ➔
-                    </Link>
+                <div className="flex items-start gap-2">
+                  {feedback.type === 'success' ? (
+                    <CheckCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  )}
+                  <div className="flex-1 space-y-1.5">
+                    <p className="font-medium leading-relaxed">{feedback.msg}</p>
+                    {feedback.not_configured && (
+                      <div className="pt-1.5">
+                        <Link
+                          href="/settings/integrations?tab=search_engines"
+                          className="inline-flex items-center gap-1.5 font-semibold text-indigo-500 hover:underline bg-background/80 px-2.5 py-1.5 rounded-lg border border-border shadow-xs"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Buka Pengaturan Search &amp; PIC Discovery (Settings &gt; Integrations) ➔
+                        </Link>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             ) : null}
 
@@ -1200,8 +1209,9 @@ export default function LeadDetailPage() {
       const res = await apiFetch(`/leads/${leadId}/contact-enrichment/google-deep/search`, { method: 'POST' });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const err = new Error(json?.message || 'Failed to perform deep search') as any;
-        err.not_configured = json?.not_configured ?? false;
+        const errMsg = json?.message || json?.error?.message || (typeof json?.error === 'string' ? json?.error : null) || 'Failed to perform deep search';
+        const err = new Error(errMsg) as any;
+        err.not_configured = json?.not_configured ?? (errMsg.toLowerCase().includes('belum ada') || errMsg.toLowerCase().includes('tidak dikonfigurasi') || errMsg.toLowerCase().includes('not configured'));
         throw err;
       }
       return json;
@@ -1215,10 +1225,11 @@ export default function LeadDetailPage() {
       });
     },
     onError: (error: any) => {
+      const isNotConfigured = error?.not_configured || error?.message?.toLowerCase().includes('belum ada') || error?.message?.toLowerCase().includes('tidak dikonfigurasi') || error?.message?.toLowerCase().includes('not configured');
       setEnrichmentFeedback({
         type: 'error',
         msg: error?.message || 'Failed to perform deep search',
-        not_configured: error?.not_configured ?? false,
+        not_configured: isNotConfigured,
       });
     },
   });

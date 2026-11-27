@@ -237,16 +237,37 @@ export function SearchEnginesIntegrationSubTab() {
       });
       const data = await res.json();
 
-      setTestStatus((prev) => ({
-        ...prev,
-        [provider]: {
-          loading: false,
-          success: res.ok && data.success,
-          message: res.ok && data.success
-            ? `${data.message || "Koneksi berhasil terverifikasi!"} (Jangan lupa klik "Simpan Konfigurasi" agar tersimpan ke sistem)`
-            : (data.message || "Uji koneksi gagal."),
-        },
-      }));
+      if (res.ok && data.success) {
+        // Auto-enable provider in state
+        const updatedConfig: SearchEngineConfig = { ...config };
+        if (provider === "serper") updatedConfig.SERPER_ENABLED = true;
+        if (provider === "custom") updatedConfig.CUSTOM_SEARCH_ENABLED = true;
+        if (provider === "google_cse") updatedConfig.GOOGLE_CSE_ENABLED = true;
+        if (provider === "tavily") updatedConfig.TAVILY_ENABLED = true;
+        if (provider === "lusha") updatedConfig.LUSHA_SEARCH_ENABLED = true;
+        setConfig(updatedConfig);
+
+        // Auto-persist immediately so test connection translates directly into saved active credentials
+        await handleSave(updatedConfig);
+
+        setTestStatus((prev) => ({
+          ...prev,
+          [provider]: {
+            loading: false,
+            success: true,
+            message: `${data.message || "Koneksi berhasil terverifikasi!"} — Konfigurasi otomatis tersimpan & aktif di database.`,
+          },
+        }));
+      } else {
+        setTestStatus((prev) => ({
+          ...prev,
+          [provider]: {
+            loading: false,
+            success: false,
+            message: data.message || "Uji koneksi gagal.",
+          },
+        }));
+      }
     } catch (e: unknown) {
       const err = e as Error;
       setTestStatus((prev) => ({
@@ -260,39 +281,41 @@ export function SearchEnginesIntegrationSubTab() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (overrideConfig?: SearchEngineConfig) => {
     setSaving(true);
     setNotice(null);
+
+    const target = overrideConfig || config;
 
     const payload = {
       category: "search_engines",
       configs: [
-        { key: "SERPER_ENABLED", value: config.SERPER_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
-        { key: "SERPER_API_KEY", value: config.SERPER_API_KEY.trim(), is_secret: true, value_type: "string" },
+        { key: "SERPER_ENABLED", value: target.SERPER_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
+        { key: "SERPER_API_KEY", value: target.SERPER_API_KEY.trim(), is_secret: true, value_type: "string" },
 
-        { key: "CUSTOM_SEARCH_ENABLED", value: config.CUSTOM_SEARCH_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
-        { key: "CUSTOM_SEARCH_ENDPOINT", value: config.CUSTOM_SEARCH_ENDPOINT.trim(), is_secret: false, value_type: "string" },
-        { key: "CUSTOM_SEARCH_API_KEY", value: config.CUSTOM_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
-        { key: "CUSTOM_SEARCH_HEADER_NAME", value: config.CUSTOM_SEARCH_HEADER_NAME.trim(), is_secret: false, value_type: "string" },
-        { key: "CUSTOM_SEARCH_AUTH_TYPE", value: config.CUSTOM_SEARCH_AUTH_TYPE, is_secret: false, value_type: "string" },
-        { key: "CUSTOM_SEARCH_METHOD", value: config.CUSTOM_SEARCH_METHOD, is_secret: false, value_type: "string" },
+        { key: "CUSTOM_SEARCH_ENABLED", value: target.CUSTOM_SEARCH_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
+        { key: "CUSTOM_SEARCH_ENDPOINT", value: target.CUSTOM_SEARCH_ENDPOINT.trim(), is_secret: false, value_type: "string" },
+        { key: "CUSTOM_SEARCH_API_KEY", value: target.CUSTOM_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
+        { key: "CUSTOM_SEARCH_HEADER_NAME", value: target.CUSTOM_SEARCH_HEADER_NAME.trim(), is_secret: false, value_type: "string" },
+        { key: "CUSTOM_SEARCH_AUTH_TYPE", value: target.CUSTOM_SEARCH_AUTH_TYPE, is_secret: false, value_type: "string" },
+        { key: "CUSTOM_SEARCH_METHOD", value: target.CUSTOM_SEARCH_METHOD, is_secret: false, value_type: "string" },
 
-        { key: "GOOGLE_CSE_ENABLED", value: config.GOOGLE_CSE_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
-        { key: "GOOGLE_CUSTOM_SEARCH_API_KEY", value: config.GOOGLE_CUSTOM_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
-        { key: "GOOGLE_SEARCH_API_KEY", value: config.GOOGLE_CUSTOM_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
-        { key: "GOOGLE_CUSTOM_SEARCH_ENGINE_ID", value: config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID.trim(), is_secret: false, value_type: "string" },
-        { key: "GOOGLE_SEARCH_ENGINE_ID", value: config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID.trim(), is_secret: false, value_type: "string" },
+        { key: "GOOGLE_CSE_ENABLED", value: target.GOOGLE_CSE_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
+        { key: "GOOGLE_CUSTOM_SEARCH_API_KEY", value: target.GOOGLE_CUSTOM_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
+        { key: "GOOGLE_SEARCH_API_KEY", value: target.GOOGLE_CUSTOM_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
+        { key: "GOOGLE_CUSTOM_SEARCH_ENGINE_ID", value: target.GOOGLE_CUSTOM_SEARCH_ENGINE_ID.trim(), is_secret: false, value_type: "string" },
+        { key: "GOOGLE_SEARCH_ENGINE_ID", value: target.GOOGLE_CUSTOM_SEARCH_ENGINE_ID.trim(), is_secret: false, value_type: "string" },
 
-        { key: "TAVILY_ENABLED", value: config.TAVILY_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
-        { key: "TAVILY_API_KEY", value: config.TAVILY_API_KEY.trim(), is_secret: true, value_type: "string" },
+        { key: "TAVILY_ENABLED", value: target.TAVILY_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
+        { key: "TAVILY_API_KEY", value: target.TAVILY_API_KEY.trim(), is_secret: true, value_type: "string" },
 
-        { key: "LUSHA_SEARCH_ENABLED", value: config.LUSHA_SEARCH_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
-        { key: "LUSHA_ENABLED", value: config.LUSHA_SEARCH_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
-        { key: "LUSHA_API_KEY", value: config.LUSHA_API_KEY.trim(), is_secret: true, value_type: "string" },
+        { key: "LUSHA_SEARCH_ENABLED", value: target.LUSHA_SEARCH_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
+        { key: "LUSHA_ENABLED", value: target.LUSHA_SEARCH_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
+        { key: "LUSHA_API_KEY", value: target.LUSHA_API_KEY.trim(), is_secret: true, value_type: "string" },
 
-        { key: "BRAVE_SEARCH_API_KEY", value: config.BRAVE_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
+        { key: "BRAVE_SEARCH_API_KEY", value: target.BRAVE_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
 
-        { key: "SEARCH_ENGINE_PRIORITY", value: JSON.stringify(config.SEARCH_ENGINE_PRIORITY), is_secret: false, value_type: "json" },
+        { key: "SEARCH_ENGINE_PRIORITY", value: JSON.stringify(target.SEARCH_ENGINE_PRIORITY), is_secret: false, value_type: "json" },
       ],
     };
 
@@ -304,7 +327,7 @@ export function SearchEnginesIntegrationSubTab() {
       });
 
       if (res.ok) {
-        setNotice({ type: "success", message: "Pengaturan Mesin Pencari & Discovery PIC berhasil disimpan!" });
+        setNotice({ type: "success", message: "Pengaturan Mesin Pencari & Discovery PIC berhasil disimpan dan aktif!" });
         fetchConfigs();
       } else {
         const errJson = await res.json();
@@ -342,7 +365,7 @@ export function SearchEnginesIntegrationSubTab() {
               beralih ke <strong>P2</strong>, <strong>P3</strong>, dan seterusnya secara berurutan tanpa jeda kegagalan.
             </p>
           </div>
-          <Button onClick={handleSave} disabled={saving} className="shrink-0 gap-2">
+          <Button onClick={() => handleSave()} disabled={saving} className="shrink-0 gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Simpan Konfigurasi
           </Button>
@@ -507,16 +530,28 @@ export function SearchEnginesIntegrationSubTab() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleTestConnection("serper")}
-                disabled={testStatus.serper?.loading || !config.SERPER_API_KEY}
-                className="gap-1.5 text-xs"
-              >
-                {testStatus.serper?.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
-                Uji Koneksi Serper
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleTestConnection("serper")}
+                  disabled={testStatus.serper?.loading || !config.SERPER_API_KEY}
+                  className="gap-1.5 text-xs"
+                >
+                  {testStatus.serper?.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                  Uji Koneksi Serper
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => handleSave()}
+                  disabled={saving}
+                  className="gap-1.5 text-xs"
+                >
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Simpan
+                </Button>
+              </div>
               {testStatus.serper && (
                 <span
                   className={cn(
@@ -564,7 +599,14 @@ export function SearchEnginesIntegrationSubTab() {
                   type="url"
                   placeholder="https://search.my-proxy.com/api/v1/search"
                   value={config.CUSTOM_SEARCH_ENDPOINT}
-                  onChange={(e) => setConfig({ ...config, CUSTOM_SEARCH_ENDPOINT: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setConfig({
+                      ...config,
+                      CUSTOM_SEARCH_ENDPOINT: val,
+                      CUSTOM_SEARCH_ENABLED: val.trim().length > 0 ? true : config.CUSTOM_SEARCH_ENABLED,
+                    });
+                  }}
                   className="mt-1"
                 />
               </div>
@@ -637,16 +679,28 @@ export function SearchEnginesIntegrationSubTab() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleTestConnection("custom")}
-                disabled={testStatus.custom?.loading || !config.CUSTOM_SEARCH_ENDPOINT}
-                className="gap-1.5 text-xs"
-              >
-                {testStatus.custom?.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Server className="h-3.5 w-3.5" />}
-                Uji Endpoint Custom
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleTestConnection("custom")}
+                  disabled={testStatus.custom?.loading || !config.CUSTOM_SEARCH_ENDPOINT}
+                  className="gap-1.5 text-xs"
+                >
+                  {testStatus.custom?.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Server className="h-3.5 w-3.5" />}
+                  Uji Endpoint Custom
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => handleSave()}
+                  disabled={saving}
+                  className="gap-1.5 text-xs"
+                >
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Simpan
+                </Button>
+              </div>
               {testStatus.custom && (
                 <span
                   className={cn(
@@ -739,16 +793,28 @@ export function SearchEnginesIntegrationSubTab() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleTestConnection("google_cse")}
-                disabled={testStatus.google_cse?.loading || !config.GOOGLE_CUSTOM_SEARCH_API_KEY || !config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID}
-                className="gap-1.5 text-xs"
-              >
-                {testStatus.google_cse?.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
-                Uji Koneksi Google CSE
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleTestConnection("google_cse")}
+                  disabled={testStatus.google_cse?.loading || !config.GOOGLE_CUSTOM_SEARCH_API_KEY || !config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID}
+                  className="gap-1.5 text-xs"
+                >
+                  {testStatus.google_cse?.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                  Uji Koneksi Google CSE
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => handleSave()}
+                  disabled={saving}
+                  className="gap-1.5 text-xs"
+                >
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Simpan
+                </Button>
+              </div>
               {testStatus.google_cse && (
                 <span
                   className={cn(
@@ -824,16 +890,28 @@ export function SearchEnginesIntegrationSubTab() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleTestConnection("tavily")}
-                disabled={testStatus.tavily?.loading || !config.TAVILY_API_KEY}
-                className="gap-1.5 text-xs"
-              >
-                {testStatus.tavily?.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
-                Uji Koneksi Tavily
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleTestConnection("tavily")}
+                  disabled={testStatus.tavily?.loading || !config.TAVILY_API_KEY}
+                  className="gap-1.5 text-xs"
+                >
+                  {testStatus.tavily?.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                  Uji Koneksi Tavily
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => handleSave()}
+                  disabled={saving}
+                  className="gap-1.5 text-xs"
+                >
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Simpan
+                </Button>
+              </div>
               {testStatus.tavily && (
                 <span
                   className={cn(
@@ -905,16 +983,28 @@ export function SearchEnginesIntegrationSubTab() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleTestConnection("lusha")}
-                disabled={testStatus.lusha?.loading || !config.LUSHA_API_KEY}
-                className="gap-1.5 text-xs"
-              >
-                {testStatus.lusha?.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
-                Uji Koneksi Lusha
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleTestConnection("lusha")}
+                  disabled={testStatus.lusha?.loading || !config.LUSHA_API_KEY}
+                  className="gap-1.5 text-xs"
+                >
+                  {testStatus.lusha?.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                  Uji Koneksi Lusha
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => handleSave()}
+                  disabled={saving}
+                  className="gap-1.5 text-xs"
+                >
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Simpan
+                </Button>
+              </div>
               {testStatus.lusha && (
                 <span
                   className={cn(
@@ -964,7 +1054,7 @@ export function SearchEnginesIntegrationSubTab() {
 
       {/* ── Bottom Save Bar ── */}
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-        <Button onClick={handleSave} disabled={saving} className="gap-2">
+        <Button onClick={() => handleSave()} disabled={saving} className="gap-2">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Simpan Semua Pengaturan
         </Button>
