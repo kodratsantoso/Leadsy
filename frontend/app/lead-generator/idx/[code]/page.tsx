@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, use, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { throwIfApiError } from "@/lib/apiError";
@@ -40,9 +41,10 @@ import { useToast } from "@/components/ui/toast";
 
 const HighchartsReact = dynamic(() => import("highcharts-react-official"), { ssr: false });
 
-export default function IdxCompanyDetailPage({ params }: { params: Promise<{ code: string }> }) {
-  const resolvedParams = use(params);
-  const code = resolvedParams.code.toUpperCase();
+export default function IdxCompanyDetailPage() {
+  const routerParams = useParams();
+  const rawCode = (routerParams?.code as string | string[] | undefined) || "";
+  const code = (Array.isArray(rawCode) ? rawCode[0] : rawCode).toUpperCase();
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -58,6 +60,7 @@ export default function IdxCompanyDetailPage({ params }: { params: Promise<{ cod
       await throwIfApiError(res, "Gagal memuat detail emiten IDX");
       return res.json();
     },
+    enabled: Boolean(code),
   });
 
   const company = data?.data;
@@ -247,11 +250,11 @@ Kegiatan Usaha: ${company.main_business || "-"}`;
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !code) {
     return (
       <div className="flex h-96 flex-col items-center justify-center space-y-3">
         <Loader2 className="h-8 w-8 animate-spin text-[color:var(--brand)]" />
-        <p className="text-sm text-muted-foreground">Memuat data lengkap emiten {code} dari IDX...</p>
+        <p className="text-sm text-muted-foreground">Memuat data lengkap emiten {code || "IDX"} dari IDX...</p>
       </div>
     );
   }
@@ -264,12 +267,17 @@ Kegiatan Usaha: ${company.main_business || "-"}`;
         <p className="text-sm text-muted-foreground">
           {error instanceof Error ? error.message : `Data untuk kode emiten ${code} tidak tersedia di basis data IDX.`}
         </p>
-        <Link href="/lead-generator/idx">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Kembali ke Daftar Emiten
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            Coba Muat Ulang
           </Button>
-        </Link>
+          <Link href="/lead-generator/idx">
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Kembali ke Daftar Emiten
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }

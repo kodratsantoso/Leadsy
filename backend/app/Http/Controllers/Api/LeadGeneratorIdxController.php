@@ -252,7 +252,7 @@ class LeadGeneratorIdxController extends Controller
                         $q->orWhere('website', 'like', "%{$cleanHost}%");
                     }
                 })
-                ->first(['id', 'company_name', 'status', 'created_at']);
+                ->first(['id', 'company_name', 'qualification_status', 'created_at']);
         }
 
         // Format securities list
@@ -301,7 +301,7 @@ class LeadGeneratorIdxController extends Controller
                 'idx_financial_url' => "https://www.idx.co.id/id/perusahaan-tercatat/laporan-keuangan-dan-tahunan",
                 'is_in_leads' => (bool) $existingLead,
                 'lead_id' => $existingLead?->id,
-                'lead_status' => $existingLead?->status,
+                'lead_status' => $existingLead?->qualification_status,
                 'lead_created_at' => $existingLead?->created_at?->toIso8601String(),
                 'stock_trend' => $stockTrend,
                 'raw_payload' => $raw,
