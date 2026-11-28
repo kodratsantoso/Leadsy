@@ -38,6 +38,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
+import { useTheme } from "@/lib/theme-context";
+import TradingViewWidget from "./TradingViewWidget";
 
 const HighchartsReact = dynamic(() => import("highcharts-react-official"), { ssr: false });
 
@@ -47,6 +49,7 @@ export default function IdxCompanyDetailPage() {
   const code = (Array.isArray(rawCode) ? rawCode[0] : rawCode).toUpperCase();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const { resolved } = useTheme();
 
   const [chartMode, setChartMode] = useState<"highcharts" | "tradingview">("highcharts");
   const [chartRange, setChartRange] = useState<"1M" | "3M" | "ALL">("3M");
@@ -285,7 +288,7 @@ Kegiatan Usaha: ${company.main_business || "-"}`;
   const isPriceUp = (stockTrend?.change_1d || 0) >= 0;
 
   return (
-    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+    <div className="space-y-6 p-4 sm:p-6 w-full">
       {/* Navigation Breadcrumb & Back */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -506,12 +509,11 @@ Kegiatan Usaha: ${company.main_business || "-"}`;
                 </div>
               ) : (
                 /* TradingView Live Embedded Widget for IDX ticker */
-                <div className="w-full h-[400px] rounded-lg overflow-hidden border border-border">
-                  <iframe
-                    title={`TradingView Chart ${company.idx_code}`}
-                    src={`https://s.tradingview.com/widgetembed/?symbol=IDX%3A${company.idx_code}&interval=D&hidesidetoolbar=1&symboledit=1&saveimage=0&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Asia%2FJakarta&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=id&utm_source=leadsy.tech`}
-                    className="w-full h-full border-0"
-                    loading="lazy"
+                <div className="w-full">
+                  <TradingViewWidget
+                    symbol={company.idx_code}
+                    theme={resolved === "dark" ? "dark" : "light"}
+                    height={460}
                   />
                 </div>
               )}
