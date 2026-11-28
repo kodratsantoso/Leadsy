@@ -58,6 +58,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import type { Lead, QualificationStatus } from "@/types/api";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { downloadTimestampedReport } from "@/lib/utils/download-report";
+import { cn } from "@/lib/utils";
 import { CreateNewModal } from "@/components/ui/CreateNewModal";
 import { EditLeadModal } from "@/components/leads/EditLeadModal";
 import { AiProfilingPanel } from "@/components/leads/AiProfilingPanel";
@@ -1650,7 +1651,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
             {activeFilterCount > 0 && (
               <Badge variant="brand" className="ml-2">{activeFilterCount}</Badge>
             )}
-            {showFilters ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+            <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform duration-200", showFilters && "rotate-180")} />
           </Button>
           {hasActiveFilter ? (
             <Button variant="ghost" onClick={resetFilters}>

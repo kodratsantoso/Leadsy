@@ -936,7 +936,7 @@ export default function SystemPlaybookPage() {
                         className="text-xs gap-1.5 h-7 px-2.5"
                       >
                         {isExpanded ? "Sembunyikan Kontrak Output" : "Lihat Kontrak JSON Output"}
-                        {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", isExpanded && "rotate-180")} />
                       </Button>
                     </div>
 

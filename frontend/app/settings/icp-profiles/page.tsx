@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
+import { cn } from "@/lib/utils";
 import {
   Plus, Pencil, Trash2, Loader2, Target, CheckCircle,
   XCircle, Zap, Sparkles, AlertCircle, ChevronDown, ChevronUp,
@@ -334,7 +335,7 @@ export default function IcpProfilesPage() {
                 onClick={() => setShowModeMenu((v) => !v)}
                 className="flex items-center px-2 bg-[color-mix(in_oklch,var(--brand)_8%,transparent)] text-[var(--brand)] hover:bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] border-0"
               >
-                {showModeMenu ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", showModeMenu && "rotate-180")} />
               </button>
             </div>
             {showModeMenu && (

@@ -14,6 +14,8 @@ import {
   Loader2,
   MapPin,
   MessageCircle,
+  PanelRightClose,
+  PanelRightOpen,
   Phone,
   Plus,
   PlusCircle,
@@ -144,19 +146,30 @@ export function MapResultsPanel({
 
   if (isCollapsed) {
     return (
-      <div className="hidden h-full w-12 shrink-0 flex-col items-center justify-between border-l border-border bg-background py-4 lg:flex">
-        <div className="flex flex-col items-center gap-3">
+      <div className="hidden h-full w-12 shrink-0 flex-col items-center justify-between border-l border-border bg-card/95 py-3 backdrop-blur-md lg:flex select-none z-20">
+        <div className="flex flex-col items-center gap-2">
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
             onClick={onToggleCollapse}
-            tooltip="Expand Results Panel"
+            tooltip="Buka Panel Hasil (Expand)"
+            className="h-8 w-8 text-foreground hover:bg-accent/80 hover:text-foreground"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <PanelRightOpen className="h-4 w-4" />
           </Button>
-          <div className="h-4 w-px bg-border" />
-          <Badge variant="brand" className="text-[10px] px-1.5 py-0.5">
+          <div className="h-px w-6 bg-border/80 my-1" />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={onToggleCollapse}
+            tooltip={`Lihat ${results.length} Hasil Discovery`}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent/80"
+          >
+            <Building2 className="h-4 w-4" />
+          </Button>
+          <Badge variant="brand" className="text-[10px] px-1.5 py-0.5 tabular-nums">
             {results.length}
           </Badge>
         </div>
@@ -237,10 +250,10 @@ export function MapResultsPanel({
                   variant="ghost"
                   size="icon-xs"
                   onClick={onToggleCollapse}
-                  tooltip="Minimize Panel"
-                  className="h-7 w-7"
+                  tooltip="Ciutkan Panel (Collapse)"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
                 >
-                  <ChevronRight className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  <PanelRightClose className="h-4 w-4" />
                 </Button>
               )}
             </div>

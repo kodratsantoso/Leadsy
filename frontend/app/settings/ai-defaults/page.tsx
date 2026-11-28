@@ -964,7 +964,7 @@ export default function AiDefaultsPage() {
                       <div>Base URL: <span className="text-foreground">{provider.base_url || "—"}</span></div>
                     </div>
                   </div>
-                  {expanded ? <ChevronUp className="mt-1 h-5 w-5 text-muted-foreground" /> : <ChevronDown className="mt-1 h-5 w-5 text-muted-foreground" />}
+                  <ChevronDown className={cn("mt-1 h-5 w-5 text-muted-foreground transition-transform duration-200", expanded && "rotate-180")} />
                 </button>
 
                 {expanded && (
@@ -1568,7 +1568,7 @@ export default function AiDefaultsPage() {
               onClick={() => setProviderAdvancedOpen((v) => !v)}
               className="mt-4 flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
-              {providerAdvancedOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", providerAdvancedOpen && "rotate-180")} />
               Advanced settings
             </button>
 

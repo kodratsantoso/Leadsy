@@ -4,9 +4,6 @@ import { useState, useEffect } from "react";
 import {
   Bookmark,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
   Crosshair,
   Filter,
   History,
@@ -15,6 +12,8 @@ import {
   MapPin,
   Navigation,
   Package,
+  PanelLeftClose,
+  PanelLeftOpen,
   RotateCcw,
   Save,
   Search,
@@ -29,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/apiFetch";
 import {
   useMapDiscovery,
@@ -343,40 +343,56 @@ export function MapSearchPanel({
 
   if (isCollapsed) {
     return (
-      <div className="hidden h-full w-12 shrink-0 flex-col items-center justify-between border-r border-border bg-background py-4 lg:flex">
-        <div className="flex flex-col items-center gap-3">
+      <div className="hidden h-full w-12 shrink-0 flex-col items-center justify-between border-r border-border bg-card/95 py-3 backdrop-blur-md lg:flex select-none z-20">
+        <div className="flex flex-col items-center gap-2">
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
             onClick={onToggleCollapse}
-            tooltip="Expand Search Controls"
+            tooltip="Buka Panel Pencarian (Expand)"
+            className="h-8 w-8 text-foreground hover:bg-accent/80 hover:text-foreground"
           >
-            <ChevronRight className="h-4 w-4" />
+            <PanelLeftOpen className="h-4 w-4" />
           </Button>
-          <div className="h-4 w-px bg-border" />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={handleDetectGPS}
-            tooltip="Detect GPS"
-          >
-            <Crosshair className="h-4 w-4 text-[color:var(--brand)]" />
-          </Button>
+          <div className="h-px w-6 bg-border/80 my-1" />
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
             onClick={() => onToggleCollapse?.()}
-            tooltip="Saved Territories"
+            tooltip="Pencarian Wilayah"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent/80"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleDetectGPS}
+            tooltip="Deteksi Posisi GPS"
+            className="h-8 w-8 text-muted-foreground hover:text-[color:var(--brand)] hover:bg-[color:var(--brand)]/10"
+          >
+            <Crosshair className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => {
+              if (isCollapsed) onToggleCollapse?.();
+              setShowSavedTerritories(true);
+            }}
+            tooltip="Wilayah Tersimpan"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent/80"
           >
             <Bookmark className="h-4 w-4" />
           </Button>
         </div>
         <div className="flex flex-col items-center gap-2">
           {resultCount > 0 && (
-            <Badge variant="brand" className="text-[10px] px-1.5 py-0.5">
+            <Badge variant="brand" className="text-[10px] px-1.5 py-0.5 tabular-nums">
               {resultCount}
             </Badge>
           )}
@@ -385,9 +401,10 @@ export function MapSearchPanel({
             variant="ghost"
             size="icon-sm"
             onClick={handleReset}
-            tooltip="Reset Search"
+            tooltip="Reset Pencarian"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent/80"
           >
-            <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+            <RotateCcw className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
@@ -424,9 +441,9 @@ export function MapSearchPanel({
               variant="ghost"
               size="icon-sm"
               onClick={onToggleCollapse}
-              tooltip="Collapse Panel"
+              tooltip="Ciutkan Panel (Collapse)"
             >
-              <ChevronLeft className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+              <PanelLeftClose className="h-4 w-4 text-muted-foreground hover:text-foreground" />
             </Button>
           )}
         </div>
@@ -630,7 +647,7 @@ export function MapSearchPanel({
               <SlidersHorizontal className="h-3.5 w-3.5 text-[color:var(--brand)]" />
               Advanced Filters & Product Fit
             </span>
-            {showAdvanced ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform duration-200", showAdvanced && "rotate-180")} />
           </button>
 
           {showAdvanced && (
@@ -702,10 +719,13 @@ export function MapSearchPanel({
                   variant="outline"
                   size="xs"
                   onClick={loadHistory}
-                  className="w-full justify-center gap-1.5 text-xs h-7"
+                  className="w-full justify-between px-2.5 text-xs h-7"
                 >
-                  <History className="h-3 w-3" />
-                  {showHistory ? "Hide History" : "View Search History"}
+                  <span className="flex items-center gap-1.5">
+                    <History className="h-3 w-3 text-muted-foreground" />
+                    <span>{showHistory ? "Sembunyikan Riwayat" : "Riwayat Pencarian"}</span>
+                  </span>
+                  <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-200", showHistory && "rotate-180")} />
                 </Button>
                 {showHistory && (
                   <div className="mt-2 max-h-32 space-y-1 overflow-y-auto rounded-md border border-border p-1.5 text-xs bg-[color:var(--surface-subtle)]">

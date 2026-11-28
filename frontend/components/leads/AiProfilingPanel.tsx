@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Loader2, AlertCircle, CheckCircle2, Building2, MapPin, Phone, Globe, Users, Briefcase, Target, TrendingUp, Shield, ExternalLink, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface SourceEvidence {
   website_sources?: string[];
@@ -109,7 +110,7 @@ const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.
           {icon}
           {title}
         </span>
-        {open ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+        <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform duration-200", open && "rotate-180")} />
       </button>
       {open && <div className="p-3 space-y-2">{children}</div>}
     </div>

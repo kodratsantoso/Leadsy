@@ -16,6 +16,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   Menu,
   X,
   ExternalLink,
@@ -119,8 +121,9 @@ export function PlatformShell({ children }: PlatformShellProps) {
             onClick={() => setCollapsed(!collapsed)}
             className="hidden lg:flex h-7 w-7 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-accent/50 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors cursor-pointer"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </button>
           <button
             onClick={() => setMobileMenuOpen(false)}

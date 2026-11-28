@@ -596,7 +596,7 @@ export default function MapPage() {
                 variant="secondary"
                 size="sm"
                 onClick={() => setIsSearchCollapsed(false)}
-                className="gap-1.5 text-xs h-8 shadow-md"
+                className="gap-1.5 text-xs h-8 shadow-md lg:hidden"
               >
                 <PanelLeftOpen className="h-3.5 w-3.5" />
                 <span>Show Search</span>
@@ -608,7 +608,7 @@ export default function MapPage() {
                 variant="secondary"
                 size="sm"
                 onClick={() => setIsResultsCollapsed(false)}
-                className="gap-1.5 text-xs h-8 shadow-md"
+                className="gap-1.5 text-xs h-8 shadow-md lg:hidden"
               >
                 <PanelRightOpen className="h-3.5 w-3.5" />
                 <span>Results ({results.length})</span>

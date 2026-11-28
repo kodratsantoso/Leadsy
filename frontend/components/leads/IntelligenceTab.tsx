@@ -36,7 +36,7 @@ import { AiDeepProfileSection } from "@/components/leads/AiDeepProfileSection";
 import { apiFetch } from "@/lib/apiFetch";
 import { toDisplayText } from "@/lib/utils";
 import { runAiScreening } from "@/lib/aiScreeningPipeline";
-import { safeJsonArray, safeRender } from "@/lib/utils";
+import { safeJsonArray, safeRender, cn } from "@/lib/utils";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { describeThrown, readApiError } from "@/lib/apiError";
 import {
@@ -265,7 +265,7 @@ export function IntelligenceTab({
                   AI Actions
                   <Badge variant="outline" className="text-[10px]">Superadmin</Badge>
                 </span>
-                {aiActionsOpen ? <ChevronUp className="h-4 w-4 text-[var(--brand)]" /> : <ChevronDown className="h-4 w-4 text-[var(--brand)]" />}
+                <ChevronDown className={cn("h-4 w-4 text-[var(--brand)] transition-transform duration-200", aiActionsOpen && "rotate-180")} />
               </button>
 
               {aiActionsOpen && (

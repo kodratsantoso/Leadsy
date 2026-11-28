@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Map, Building2, Package,
   Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
+  PanelLeftClose, PanelLeftOpen,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
   HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox, Wifi, WifiOff, LayoutGrid, Mail,
   Receipt, FileSpreadsheet, Hash, CalendarClock, Newspaper, Menu, X, Download
@@ -595,10 +596,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden h-10 items-center justify-center border-t border-sidebar-border text-sidebar-foreground/50 hover:text-sidebar-foreground lg:flex"
+          className="hidden h-10 items-center justify-center border-t border-sidebar-border text-sidebar-foreground/50 hover:text-sidebar-foreground lg:flex transition-colors cursor-pointer"
           aria-label={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
+          title={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
       </aside>
 
@@ -616,6 +618,18 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-label="Buka menu navigasi"
             >
               <Menu className="h-4 w-4" />
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="hidden h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:text-foreground lg:flex"
+              onClick={() => setCollapsed(!collapsed)}
+              aria-label={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
+              title={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
+            >
+              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </Button>
 
             <Link
