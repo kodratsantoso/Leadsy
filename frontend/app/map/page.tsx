@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { APIProvider, Map, Circle, AdvancedMarker } from "@vis.gl/react-google-maps";
 import Link from "next/link";
 import {
@@ -21,6 +21,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/apiFetch";
+import { useAuthStore } from "@/store/useAuthStore";
+import {
+  saveDiscoverySessionCache,
+  loadDiscoverySessionCache,
+  clearDiscoverySessionCache,
+  formatRelativeDiscoveryTime,
+  type MapDiscoverySessionCache,
+} from "@/lib/map-discovery-storage";
 import {
   useMapDiscovery,
   type DiscoveredLead,
@@ -81,6 +89,67 @@ export default function MapPage() {
   const [filters, setFilters] = useState({ hasPhone: false, newOnly: false });
   const [feedback, setFeedback] = useState("");
 
+  // User session & discovery cache state
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.id;
+  const tenantId = user?.tenant_id;
+
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [cachedTimestamp, setCachedTimestamp] = useState<number | null>(null);
+  const [initialSearchValues, setInitialSearchValues] = useState<{
+    keyword?: string;
+    category?: string;
+    searchMode?: "nearby" | "text";
+    aiMode?: AiMode;
+    areaQuery?: string;
+  } | undefined>(undefined);
+  const [lastSearchParams, setLastSearchParams] = useState<{
+    keyword: string;
+    category: string;
+    searchMode: "nearby" | "text";
+    areaQuery?: string;
+  } | null>(null);
+
+  const hasRestoredCacheRef = useRef(false);
+
+  // Restore cached discovery session partitioned by user session
+  useEffect(() => {
+    if (!userId || hasRestoredCacheRef.current) return;
+
+    const cache = loadDiscoverySessionCache(userId, tenantId);
+    if (cache && Array.isArray(cache.results) && cache.results.length > 0) {
+      hasRestoredCacheRef.current = true;
+      setResults(cache.results);
+      if (cache.center) setCenter(cache.center);
+      if (cache.zoom) setZoom(cache.zoom);
+      if (cache.radius) setRadius(cache.radius);
+      if (cache.activeArea) setActiveArea(cache.activeArea);
+      if (cache.searchParams?.aiMode) setCurrentAiMode(cache.searchParams.aiMode);
+      if (cache.searchParams?.selectedProductId !== undefined) {
+        setSelectedProductId(cache.searchParams.selectedProductId);
+      }
+      if (cache.filters) setFilters(cache.filters);
+      if (cache.selectedId) setSelectedId(cache.selectedId);
+
+      setIsFromCache(true);
+      setCachedTimestamp(cache.timestamp);
+      setInitialSearchValues({
+        keyword: cache.searchParams.keyword,
+        category: cache.searchParams.category,
+        searchMode: cache.searchParams.searchMode,
+        aiMode: cache.searchParams.aiMode,
+        areaQuery: cache.searchParams.areaQuery || cache.activeArea?.formatted_address,
+      });
+      setLastSearchParams({
+        keyword: cache.searchParams.keyword,
+        category: cache.searchParams.category,
+        searchMode: cache.searchParams.searchMode,
+        areaQuery: cache.searchParams.areaQuery || cache.activeArea?.formatted_address,
+      });
+      setFeedback(`Memulihkan ${cache.results.length} hasil Discovery Scan dari sesi tersimpan.`);
+    }
+  }, [userId, tenantId]);
+
   useEffect(() => {
     apiFetch("/settings/public")
       .then((res) => res.json())
@@ -94,22 +163,25 @@ export default function MapPage() {
         setApiKey(typeof publicApiKey === "string" && publicApiKey.trim() ? publicApiKey : fallbackApiKey);
         setIsMapsEnabled(settings.GOOGLE_MAPS_ENABLED === undefined ? true : isEnabledFlag(settings.GOOGLE_MAPS_ENABLED));
 
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
-          const defaultLoc = { lat, lng };
-          setCenter(defaultLoc);
-          setActiveArea({
-            place_id: "default_center",
-            formatted_address: "Default Region Center",
-            lat,
-            lng,
-          });
-        } else {
-          setActiveArea({
-            place_id: "default_center",
-            formatted_address: "Jakarta, Indonesia",
-            lat: DEFAULT_CENTER.lat,
-            lng: DEFAULT_CENTER.lng,
-          });
+        // Only override center if user session has not restored a cached discovery territory
+        if (!hasRestoredCacheRef.current) {
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            const defaultLoc = { lat, lng };
+            setCenter(defaultLoc);
+            setActiveArea({
+              place_id: "default_center",
+              formatted_address: "Default Region Center",
+              lat,
+              lng,
+            });
+          } else {
+            setActiveArea({
+              place_id: "default_center",
+              formatted_address: "Jakarta, Indonesia",
+              lat: DEFAULT_CENTER.lat,
+              lng: DEFAULT_CENTER.lng,
+            });
+          }
         }
       })
       .catch(() => {
@@ -118,6 +190,67 @@ export default function MapPage() {
       })
       .finally(() => setLoadingKey(false));
   }, []);
+
+  const persistCurrentSession = useCallback(
+    (
+      newResults: DiscoveredLead[],
+      override?: {
+        selectedId?: string | null;
+        activeArea?: GeocodeResult | null;
+        radius?: number;
+        center?: { lat: number; lng: number };
+        zoom?: number;
+        filters?: { hasPhone: boolean; newOnly: boolean };
+      }
+    ) => {
+      if (!userId) return;
+      const effectiveArea = override?.activeArea !== undefined ? override.activeArea : activeArea;
+      if (!effectiveArea) return;
+
+      const effectiveParams: MapDiscoverySessionCache["searchParams"] = {
+        lat: effectiveArea.lat,
+        lng: effectiveArea.lng,
+        radius: override?.radius ?? radius,
+        keyword: lastSearchParams?.keyword ?? "",
+        category: lastSearchParams?.category ?? "",
+        searchMode: lastSearchParams?.searchMode ?? "nearby",
+        areaQuery: lastSearchParams?.areaQuery ?? effectiveArea.formatted_address,
+        areaInfo: effectiveArea,
+        aiMode: currentAiMode,
+        selectedProductId,
+      };
+
+      saveDiscoverySessionCache(
+        userId,
+        {
+          searchParams: effectiveParams,
+          results: newResults,
+          center: override?.center ?? center,
+          zoom: override?.zoom ?? zoom,
+          radius: override?.radius ?? radius,
+          activeArea: effectiveArea,
+          selectedId: override?.selectedId !== undefined ? override.selectedId : selectedId,
+          filters: override?.filters ?? filters,
+        },
+        tenantId
+      );
+    },
+    [userId, tenantId, activeArea, lastSearchParams, currentAiMode, selectedProductId, center, zoom, radius, selectedId, filters]
+  );
+
+  const handleClearCache = useCallback(() => {
+    if (userId) {
+      clearDiscoverySessionCache(userId, tenantId);
+    }
+    setResults([]);
+    setSelectedId(null);
+    setIsFromCache(false);
+    setCachedTimestamp(null);
+    setInitialSearchValues(undefined);
+    setLastSearchParams(null);
+    hasRestoredCacheRef.current = false;
+    setFeedback("Cache Discovery Scan berhasil dibersihkan.");
+  }, [userId, tenantId]);
 
   const handleSearch = async (params: {
     lat: number;
@@ -144,9 +277,51 @@ export default function MapPage() {
       params.areaInfo?.place_id
     );
     setResults(discovered);
-    setCenter({ lat: params.lat, lng: params.lng });
-    setZoom(params.radius > 10000 ? 11 : params.radius > 5000 ? 13 : 14);
+    const nextZoom = params.radius > 10000 ? 11 : params.radius > 5000 ? 13 : 14;
+    const nextCenter = { lat: params.lat, lng: params.lng };
+    setCenter(nextCenter);
+    setZoom(nextZoom);
     setIsResultsCollapsed(false);
+    setIsFromCache(false);
+    setCachedTimestamp(Date.now());
+    hasRestoredCacheRef.current = true;
+
+    const nextParams = {
+      keyword: params.keyword,
+      category: params.category,
+      searchMode: params.searchMode,
+      areaQuery: params.areaInfo?.formatted_address,
+    };
+    setLastSearchParams(nextParams);
+
+    if (userId) {
+      saveDiscoverySessionCache(
+        userId,
+        {
+          searchParams: {
+            lat: params.lat,
+            lng: params.lng,
+            radius: params.radius,
+            keyword: params.keyword,
+            category: params.category,
+            searchMode: params.searchMode,
+            areaQuery: params.areaInfo?.formatted_address,
+            areaInfo: params.areaInfo,
+            aiMode: params.aiMode,
+            selectedProductId: params.selectedProductId,
+          },
+          results: discovered,
+          center: nextCenter,
+          zoom: nextZoom,
+          radius: params.radius,
+          activeArea: params.areaInfo ?? null,
+          selectedId: null,
+          filters,
+        },
+        tenantId
+      );
+    }
+
     // On phones & tablets the search panel overlays the map — tuck it away once results arrive
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
       setIsSearchCollapsed(true);
@@ -156,17 +331,22 @@ export default function MapPage() {
   const handleSelect = async (placeId: string | null) => {
     setSelectedId(placeId);
 
-    if (!placeId) return;
+    if (!placeId) {
+      persistCurrentSession(results, { selectedId: null });
+      return;
+    }
 
     setIsDetailFetching(true);
     try {
       const detail = await getPlaceDetails(placeId);
       if (detail) {
-        setResults((prev) =>
-          prev.map((r) =>
+        setResults((prev) => {
+          const updated = prev.map((r) =>
             r.external_place_id === placeId ? { ...r, ...detail, fit_analysis: r.fit_analysis } : r
-          )
-        );
+          );
+          persistCurrentSession(updated, { selectedId: placeId });
+          return updated;
+        });
       }
     } catch {
       // ignore
@@ -184,13 +364,15 @@ export default function MapPage() {
   const handleAddLead = async (lead: DiscoveredLead, aiMode: AiMode) => {
     try {
       const result = await addToLeads(lead, aiMode, selectedProductId ?? undefined);
-      setResults((prev) =>
-        prev.map((r) =>
+      setResults((prev) => {
+        const updated = prev.map((r) =>
           r.external_place_id === lead.external_place_id
             ? { ...r, dedup: { is_duplicate: true, status: "existing_new_pic", recommendation: "skip" } }
             : r
-        )
-      );
+        );
+        persistCurrentSession(updated);
+        return updated;
+      });
       if (result?.ai_warning) {
         setFeedback(`Lead added. ⚠ ${result.ai_warning}`);
       } else {
@@ -217,13 +399,15 @@ export default function MapPage() {
       );
 
       const addedSet = new Set(added);
-      setResults((prev) =>
-        prev.map((r) =>
+      setResults((prev) => {
+        const updated = prev.map((r) =>
           r.external_place_id && addedSet.has(r.external_place_id)
             ? { ...r, dedup: { is_duplicate: true, status: "existing_new_pic", recommendation: "skip" } }
             : r
-        )
-      );
+        );
+        persistCurrentSession(updated);
+        return updated;
+      });
 
       if (failed.length > 0) {
         setFeedback(`Added ${added.length} leads. (${failed.length} skipped or failed).`);
@@ -249,14 +433,16 @@ export default function MapPage() {
       return;
     }
 
-    setResults((prev) =>
-      prev.map((r) => {
+    setResults((prev) => {
+      const updated = prev.map((r) => {
         const placeId = r.external_place_id;
         if (!placeId) return r;
         const analysis: GeoProductFitAnalysis | undefined = analysisMap[placeId];
         return analysis ? { ...r, fit_analysis: analysis } : r;
-      })
-    );
+      });
+      persistCurrentSession(updated);
+      return updated;
+    });
 
     const highCount = Object.values(analysisMap).filter((a) => a.fit_level === "high").length;
     setFeedback(
@@ -324,6 +510,14 @@ export default function MapPage() {
             </Badge>
           ) : null}
 
+          {/* Cached Session Badge */}
+          {isFromCache && results.length > 0 && (
+            <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/5 gap-1.5 py-1">
+              <Sparkles className="h-3 w-3 text-blue-500" />
+              Sesi Tersimpan ({formatRelativeDiscoveryTime(cachedTimestamp || 0)})
+            </Badge>
+          )}
+
           {/* Quick Stats Pill */}
           {results.length > 0 && (
             <Badge variant="brand" className="text-xs">
@@ -338,27 +532,39 @@ export default function MapPage() {
         {/* Search Panel with Saved Territories and Radius Controls */}
         <MapSearchPanel
           onSearch={handleSearch}
-          onReset={() => {
-            setResults([]);
-            setSelectedId(null);
-            setFeedback("");
-          }}
+          onReset={handleClearCache}
+          initialValues={initialSearchValues}
           isSearching={isSearching}
           resultCount={results.length}
           onAreaFound={(area) => {
             setActiveArea(area);
             setCenter({ lat: area.lat, lng: area.lng });
             setZoom(radius > 10000 ? 11 : radius > 5000 ? 13 : 14);
+            persistCurrentSession(results, { activeArea: area, center: { lat: area.lat, lng: area.lng } });
           }}
           filters={filters}
-          onFilterChange={setFilters}
+          onFilterChange={(newFilters) => {
+            setFilters(newFilters);
+            persistCurrentSession(results, { filters: newFilters });
+          }}
           onMessage={setFeedback}
           selectedProductId={selectedProductId}
-          onProductChange={setSelectedProductId}
+          onProductChange={(pId) => {
+            setSelectedProductId(pId);
+            persistCurrentSession(results);
+          }}
           radius={radius}
-          onRadiusChange={setRadius}
+          onRadiusChange={(newRadius) => {
+            setRadius(newRadius);
+            persistCurrentSession(results, { radius: newRadius });
+          }}
           activeArea={activeArea}
-          onAreaSelect={setActiveArea}
+          onAreaSelect={(area) => {
+            setActiveArea(area);
+            if (area) {
+              persistCurrentSession(results, { activeArea: area });
+            }
+          }}
           isCollapsed={isSearchCollapsed}
           onToggleCollapse={() => setIsSearchCollapsed(!isSearchCollapsed)}
         />
@@ -548,6 +754,9 @@ export default function MapPage() {
             selectedProductId={selectedProductId}
             isCollapsed={isResultsCollapsed}
             onToggleCollapse={() => setIsResultsCollapsed(!isResultsCollapsed)}
+            isFromCache={isFromCache}
+            cachedTimestamp={cachedTimestamp}
+            onClearCache={handleClearCache}
           />
         )}
       </div>

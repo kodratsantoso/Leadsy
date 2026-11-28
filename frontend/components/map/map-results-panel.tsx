@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import type { DiscoveredLead, FitLevel, GeoProductFitAnalysis } from "@/lib/hooks/use-map-discovery";
 import type { AiMode } from "@/components/ai/ai-mode-selector";
+import { formatRelativeDiscoveryTime } from "@/lib/map-discovery-storage";
 import { useState } from "react";
 
 type SortKey = "default" | "fit_score_desc" | "fit_score_asc" | "rating_desc";
@@ -56,6 +57,9 @@ type ResultPanelProps = {
   onFlyTo?: (lead: DiscoveredLead) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  isFromCache?: boolean;
+  cachedTimestamp?: number | null;
+  onClearCache?: () => void;
 };
 
 const FIT_LEVEL_CONFIG: Record<FitLevel, { label: string; variant: "success" | "warning" | "neutral" | "outline"; color: string }> = {
@@ -122,6 +126,9 @@ export function MapResultsPanel({
   onFlyTo,
   isCollapsed = false,
   onToggleCollapse,
+  isFromCache = false,
+  cachedTimestamp,
+  onClearCache,
 }: ResultPanelProps) {
   const [sortKey, setSortKey] = useState<SortKey>("default");
   const [fitFilter, setFitFilter] = useState<FitFilter>("all");
@@ -254,6 +261,29 @@ export function MapResultsPanel({
                 <p className="text-[10px] text-muted-foreground uppercase font-semibold">High Fit</p>
                 <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">{highFitCount}</p>
               </div>
+            </div>
+          ) : null}
+
+          {/* Cached Session Banner */}
+          {!selectedId && isFromCache && totalCount > 0 ? (
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-blue-500/25 bg-blue-500/10 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                <span className="truncate">
+                  Hasil scan tersimpan {cachedTimestamp ? `(${formatRelativeDiscoveryTime(cachedTimestamp)})` : ""}
+                </span>
+              </div>
+              {onClearCache && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={onClearCache}
+                  className="h-6 shrink-0 px-2 text-[11px] font-medium text-blue-600 hover:bg-blue-500/15 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-100"
+                >
+                  Scan Baru
+                </Button>
+              )}
             </div>
           ) : null}
 

@@ -73,6 +73,14 @@ type SearchPanelProps = {
   // Panel collapse
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  // Initial / Restored cached search parameters
+  initialValues?: {
+    keyword?: string;
+    category?: string;
+    searchMode?: "nearby" | "text";
+    aiMode?: AiMode;
+    areaQuery?: string;
+  };
 };
 
 const searchModeTabs = [
@@ -105,16 +113,28 @@ export function MapSearchPanel({
   onAreaSelect,
   isCollapsed = false,
   onToggleCollapse,
+  initialValues,
 }: SearchPanelProps) {
   const { geocodeArea, getSearchHistory } = useMapDiscovery();
 
-  const [areaQuery, setAreaQuery] = useState("");
+  const [areaQuery, setAreaQuery] = useState(initialValues?.areaQuery || "");
   const [activeArea, setActiveArea] = useState<GeocodeResult | null>(externalActiveArea ?? null);
-  const [keyword, setKeyword] = useState("");
-  const [category, setCategory] = useState("");
+  const [keyword, setKeyword] = useState(initialValues?.keyword || "");
+  const [category, setCategory] = useState(initialValues?.category || "");
   const [radius, setRadius] = useState<number>(externalRadius);
-  const [searchMode, setSearchMode] = useState<"nearby" | "text">("nearby");
-  const [aiMode, setAiMode] = useState<AiMode>("hybrid");
+  const [searchMode, setSearchMode] = useState<"nearby" | "text">(initialValues?.searchMode || "nearby");
+  const [aiMode, setAiMode] = useState<AiMode>(initialValues?.aiMode || "hybrid");
+
+  // Synchronize initial/restored values from discovery session cache
+  useEffect(() => {
+    if (initialValues) {
+      if (initialValues.keyword !== undefined) setKeyword(initialValues.keyword);
+      if (initialValues.category !== undefined) setCategory(initialValues.category);
+      if (initialValues.searchMode !== undefined) setSearchMode(initialValues.searchMode);
+      if (initialValues.aiMode !== undefined) setAiMode(initialValues.aiMode);
+      if (initialValues.areaQuery !== undefined) setAreaQuery(initialValues.areaQuery);
+    }
+  }, [initialValues]);
   
   // Collapsible sections
   const [showAdvanced, setShowAdvanced] = useState(false);
