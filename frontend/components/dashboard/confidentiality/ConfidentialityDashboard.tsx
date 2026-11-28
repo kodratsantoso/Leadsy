@@ -169,6 +169,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
     const options: any = {
       chart: { 
         type: 'donut',
+        fontFamily: 'var(--font-sans)',
         events: {
           dataPointSelection: (event: any, chartContext: any, config: any) => {
             const label = config.w.config.labels[config.dataPointIndex];
@@ -181,18 +182,83 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
         }
       },
       labels: labels,
-      colors: ['var(--muted)', 'var(--status-info)', 'var(--status-warning)', 'var(--status-danger)', 'var(--border)'],
+      colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#94a3b8'],
+      stroke: {
+        colors: ['var(--card)'],
+        width: 2,
+      },
       plotOptions: {
         pie: {
           donut: {
-            size: '75%',
-            labels: { show: true, total: { show: true, showAlways: true, label: 'Assessed' } }
+            size: '72%',
+            labels: {
+              show: true,
+              name: {
+                show: true,
+                fontSize: '13px',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 600,
+                color: 'var(--muted-foreground)',
+                offsetY: -4,
+              },
+              value: {
+                show: true,
+                fontSize: '24px',
+                fontFamily: 'var(--font-heading)',
+                fontWeight: 700,
+                color: 'var(--foreground)',
+                offsetY: 6,
+              },
+              total: {
+                show: true,
+                showAlways: true,
+                label: 'Assessed',
+                fontSize: '12px',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 600,
+                color: 'var(--muted-foreground)',
+                formatter: (w: any) => {
+                  const sum = w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0);
+                  return sum.toString();
+                }
+              }
+            }
           }
         }
       },
-      legend: { position: 'bottom', fontSize: '11px' },
+      legend: {
+        position: 'bottom',
+        fontSize: '12px',
+        labels: {
+          colors: 'var(--foreground)',
+          useSeriesColors: false,
+        },
+        markers: {
+          width: 9,
+          height: 9,
+          radius: 12,
+        },
+        itemMargin: {
+          horizontal: 8,
+          vertical: 4,
+        }
+      },
       dataLabels: { enabled: false },
-      tooltip: { theme: 'dark' },
+      tooltip: {
+        theme: 'dark',
+        custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
+          const val = series[seriesIndex];
+          const label = w.config.labels[seriesIndex];
+          const color = w.config.colors[seriesIndex];
+          return `
+            <div class="px-3 py-2 bg-[color:var(--card)] border border-[color:var(--border)] rounded-lg shadow-xl text-[color:var(--foreground)] font-sans text-xs flex items-center gap-2.5">
+              <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${color}"></span>
+              <span class="font-medium text-[color:var(--muted-foreground)]">${label}:</span>
+              <span class="font-bold text-[color:var(--foreground)] tabular-nums">${val}</span>
+            </div>
+          `;
+        }
+      },
     };
 
     return (
@@ -219,14 +285,48 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
   // Block 7: Trend
   const renderTrend = () => {
     const options: any = {
-      chart: { type: 'area', toolbar: { show: false }, sparkline: { enabled: false } },
+      chart: { type: 'area', toolbar: { show: false }, sparkline: { enabled: false }, fontFamily: 'var(--font-sans)' },
       stroke: { curve: 'smooth', width: 2 },
       fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] } },
       colors: ['var(--status-danger)'],
-      xaxis: { categories: trend.map((t: any) => t.month), labels: { style: { fontSize: '10px' } } },
-      yaxis: { labels: { style: { fontSize: '10px' } } },
+      xaxis: {
+        categories: trend.map((t: any) => t.month),
+        labels: {
+          style: {
+            colors: 'var(--muted-foreground)',
+            fontSize: '11px',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: 500,
+          }
+        }
+      },
+      yaxis: {
+        labels: {
+          style: {
+            colors: 'var(--muted-foreground)',
+            fontSize: '11px',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: 500,
+          }
+        }
+      },
       dataLabels: { enabled: false },
-      tooltip: { theme: 'dark' },
+      tooltip: {
+        theme: 'dark',
+        custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
+          const val = series[seriesIndex][dataPointIndex];
+          const month = w.globals.categoryLabels[dataPointIndex];
+          return `
+            <div class="px-3 py-2 bg-[color:var(--card)] border border-[color:var(--border)] rounded-lg shadow-xl text-[color:var(--foreground)] font-sans text-xs">
+              <div class="text-[11px] font-semibold text-[color:var(--muted-foreground)] mb-1 pb-1 border-b border-[color:var(--border)]">${month}</div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-[color:var(--muted-foreground)]">High / Restricted:</span>
+                <span class="font-bold text-[color:var(--status-danger)] tabular-nums">${val}</span>
+              </div>
+            </div>
+          `;
+        }
+      },
       events: {
         dataPointSelection: (event: any, chartContext: any, config: any) => {
           const month = config.w.globals.categoryLabels[config.dataPointIndex];

@@ -180,17 +180,17 @@ Kegiatan Usaha: ${company.main_business || "-"}`;
       tooltip: {
         shared: true,
         useHTML: true,
-        backgroundColor: "rgba(24, 24, 27, 0.95)",
-        borderColor: "rgba(255, 255, 255, 0.1)",
+        backgroundColor: "var(--card)",
+        borderColor: "var(--border)",
         borderRadius: 8,
-        style: { color: "#fff", fontSize: "12px" },
+        style: { color: "var(--card-foreground)", fontSize: "12px" },
         formatter: function () {
           const point = this.points?.[0];
           const dateStr = Highcharts.dateFormat("%A, %d %B %Y", point?.x as number);
           const valStr = Number(point?.y).toLocaleString("id-ID");
           return `
-            <div style="padding: 4px 6px;">
-              <div style="font-size: 11px; opacity: 0.7; margin-bottom: 2px;">${dateStr}</div>
+            <div style="padding: 4px 6px; color: var(--card-foreground);">
+              <div style="font-size: 11px; color: var(--muted-foreground); margin-bottom: 2px;">${dateStr}</div>
               <div style="font-weight: 700; font-size: 14px; color: ${lineColor};">Rp ${valStr}</div>
             </div>
           `;

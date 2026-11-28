@@ -252,10 +252,11 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
     const hasData = lifecycle_funnel.stages.some((s: any) => s.count > 0);
     
     const options = {
-      chart: { type: 'bar', toolbar: { show: false } },
+      chart: { type: 'bar', toolbar: { show: false }, fontFamily: 'var(--font-sans)' },
       plotOptions: { bar: { borderRadius: 2, horizontal: false, distributed: true } },
-      dataLabels: { enabled: true, formatter: (val: number) => formatNumber(val, { decimals: 0 }), style: { fontSize: '10px' } },
-      xaxis: { categories: lifecycle_funnel.stages.map((s: any) => s.stage_name), labels: { style: { fontSize: '9px' }, trim: true, hideOverlappingLabels: true } },
+      dataLabels: { enabled: true, formatter: (val: number) => formatNumber(val, { decimals: 0 }), style: { fontSize: '10px', colors: ['var(--foreground)'] } },
+      xaxis: { categories: lifecycle_funnel.stages.map((s: any) => s.stage_name), labels: { style: { colors: 'var(--muted-foreground)', fontSize: '10px', fontFamily: 'var(--font-sans)' }, trim: true, hideOverlappingLabels: true } },
+      yaxis: { labels: { style: { colors: 'var(--muted-foreground)', fontSize: '10px', fontFamily: 'var(--font-sans)' } } },
       colors: lifecycle_funnel.stages.map((s: any) => s.color || 'var(--brand)'),
       legend: { show: false },
       tooltip: { theme: 'dark', y: { title: { formatter: () => 'Leads' } } }
@@ -349,10 +350,11 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
     const hasData = values.length > 0;
     
     const options = {
-      chart: { type: 'bar', toolbar: { show: false } },
+      chart: { type: 'bar', toolbar: { show: false }, fontFamily: 'var(--font-sans)' },
       plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true } },
       dataLabels: { enabled: true, formatter: (val: number) => formatCurrency(val), style: { fontSize: '10px' } },
-      xaxis: { categories: roles.map(r => r.toUpperCase()), labels: { formatter: (val: number) => formatCurrency(val) } },
+      xaxis: { categories: roles.map(r => r.toUpperCase()), labels: { style: { colors: 'var(--muted-foreground)', fontSize: '10px' }, formatter: (val: number) => formatCurrency(val) } },
+      yaxis: { labels: { style: { colors: 'var(--foreground)', fontSize: '11px', fontWeight: 500 } } },
       colors: ['var(--brand)', 'var(--status-success)', 'var(--status-info)', 'var(--status-warning)'],
       legend: { show: false },
       tooltip: { theme: 'dark', y: { formatter: (val: number) => formatCurrency(val) } }
@@ -461,12 +463,33 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
     const stuckData = Object.values(lost_bottlenecks.stuck_by_stage);
     
     const pieOptions = {
-      chart: { type: 'donut' },
+      chart: { type: 'donut', fontFamily: 'var(--font-sans)' },
       labels: lostReasons,
       dataLabels: { enabled: false },
-      legend: { position: 'bottom', fontSize: '10px' },
+      legend: { position: 'bottom', fontSize: '11px', labels: { colors: 'var(--foreground)' } },
       colors: ['#ef4444', '#f97316', '#eab308', '#84cc16', '#06b6d4', '#8b5cf6'],
-      plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, showAlways: true, label: 'Lost Deals' } } } } },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '70%',
+            labels: {
+              show: true,
+              total: {
+                show: true,
+                showAlways: true,
+                label: 'Lost Deals',
+                color: 'var(--muted-foreground)',
+                fontSize: '11px',
+              },
+              value: {
+                color: 'var(--foreground)',
+                fontSize: '20px',
+                fontWeight: 700,
+              }
+            }
+          }
+        }
+      },
       tooltip: { theme: 'dark' }
     };
 

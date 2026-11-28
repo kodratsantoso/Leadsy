@@ -61,51 +61,51 @@ html {
   --font-interface: 'Geist Sans', system-ui, -apple-system, sans-serif;
   --font-technical: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.11 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.11 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.62 0.17 276);
-  --chart-2: oklch(0.68 0.14 149);
-  --chart-3: oklch(0.76 0.13 83);
-  --chart-4: oklch(0.68 0.13 253);
-  --chart-5: oklch(0.68 0.18 25);
+  --popover-foreground: oklch(0.11 0 0);
+  --primary: oklch(0.18 0 0);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.15 0 0);
+  --muted: oklch(0.955 0 0);
+  --muted-foreground: oklch(0.38 0 0);
+  --accent: oklch(0.955 0 0);
+  --accent-foreground: oklch(0.11 0 0);
+  --destructive: oklch(0.50 0.24 25);
+  --border: oklch(0.89 0 0);
+  --input: oklch(0.89 0 0);
+  --ring: oklch(0.55 0 0);
+  --chart-1: oklch(0.55 0.20 276);
+  --chart-2: oklch(0.52 0.17 149);
+  --chart-3: oklch(0.58 0.16 83);
+  --chart-4: oklch(0.52 0.17 253);
+  --chart-5: oklch(0.52 0.22 25);
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --brand: oklch(0.56 0.19 276);
-  --brand-foreground: oklch(0.98 0.01 286);
-  --brand-hover: oklch(0.5 0.19 276);
-  --brand-light: oklch(0.67 0.13 276);
-  --success: oklch(0.63 0.17 149);
-  --success-soft: oklch(0.96 0.03 154);
-  --warning: oklch(0.73 0.16 70);
-  --warning-soft: oklch(0.98 0.03 85);
-  --danger: oklch(0.62 0.22 25);
-  --danger-soft: oklch(0.97 0.03 20);
-  --info: oklch(0.61 0.16 255);
-  --info-soft: oklch(0.96 0.02 250);
-  --surface-subtle: oklch(0.985 0 0);
-  --surface-strong: oklch(0.965 0 0);
+  --sidebar-foreground: oklch(0.11 0 0);
+  --sidebar-primary: oklch(0.18 0 0);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.955 0 0);
+  --sidebar-accent-foreground: oklch(0.11 0 0);
+  --sidebar-border: oklch(0.89 0 0);
+  --sidebar-ring: oklch(0.55 0 0);
+  --brand: oklch(0.48 0.22 276);
+  --brand-foreground: oklch(0.99 0 0);
+  --brand-hover: oklch(0.42 0.22 276);
+  --brand-light: oklch(0.62 0.15 276);
+  --success: oklch(0.46 0.18 145);
+  --success-soft: oklch(0.95 0.04 148);
+  --warning: oklch(0.50 0.18 60);
+  --warning-soft: oklch(0.96 0.05 75);
+  --danger: oklch(0.50 0.24 25);
+  --danger-soft: oklch(0.96 0.04 22);
+  --info: oklch(0.48 0.20 255);
+  --info-soft: oklch(0.95 0.04 250);
+  --surface-subtle: oklch(0.982 0 0);
+  --surface-strong: oklch(0.955 0 0);
   --status-success: var(--success);
   --status-warning: var(--warning);
   --status-danger: var(--danger);
@@ -117,51 +117,51 @@ html {
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.78 0.11 281);
-  --chart-2: oklch(0.77 0.1 151);
-  --chart-3: oklch(0.83 0.08 83);
-  --chart-4: oklch(0.79 0.08 253);
-  --chart-5: oklch(0.78 0.12 25);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-  --brand: oklch(0.72 0.16 281);
-  --brand-foreground: oklch(0.19 0.02 281);
-  --brand-hover: oklch(0.78 0.13 281);
-  --brand-light: oklch(0.84 0.08 281);
-  --success: oklch(0.76 0.13 151);
-  --success-soft: oklch(0.28 0.04 153);
-  --warning: oklch(0.82 0.11 83);
-  --warning-soft: oklch(0.3 0.03 82);
-  --danger: oklch(0.75 0.14 24);
-  --danger-soft: oklch(0.29 0.04 22);
-  --info: oklch(0.76 0.09 253);
-  --info-soft: oklch(0.29 0.03 252);
-  --surface-subtle: oklch(0.21 0 0);
-  --surface-strong: oklch(0.24 0 0);
+  --background: oklch(0.13 0 0);
+  --foreground: oklch(0.99 0 0);
+  --card: oklch(0.18 0 0);
+  --card-foreground: oklch(0.99 0 0);
+  --popover: oklch(0.18 0 0);
+  --popover-foreground: oklch(0.99 0 0);
+  --primary: oklch(0.95 0 0);
+  --primary-foreground: oklch(0.15 0 0);
+  --secondary: oklch(0.24 0 0);
+  --secondary-foreground: oklch(0.99 0 0);
+  --muted: oklch(0.24 0 0);
+  --muted-foreground: oklch(0.82 0 0);
+  --accent: oklch(0.24 0 0);
+  --accent-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.72 0.20 24);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: oklch(0.65 0 0);
+  --chart-1: oklch(0.78 0.14 281);
+  --chart-2: oklch(0.80 0.13 151);
+  --chart-3: oklch(0.85 0.12 83);
+  --chart-4: oklch(0.80 0.12 253);
+  --chart-5: oklch(0.80 0.15 25);
+  --sidebar: oklch(0.17 0 0);
+  --sidebar-foreground: oklch(0.99 0 0);
+  --sidebar-primary: oklch(0.55 0.24 265);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.24 0 0);
+  --sidebar-accent-foreground: oklch(0.99 0 0);
+  --sidebar-border: oklch(1 0 0 / 14%);
+  --sidebar-ring: oklch(0.65 0 0);
+  --brand: oklch(0.78 0.16 281);
+  --brand-foreground: oklch(0.12 0.02 281);
+  --brand-hover: oklch(0.84 0.13 281);
+  --brand-light: oklch(0.88 0.08 281);
+  --success: oklch(0.82 0.15 150);
+  --success-soft: oklch(0.26 0.05 150);
+  --warning: oklch(0.86 0.16 85);
+  --warning-soft: oklch(0.28 0.05 82);
+  --danger: oklch(0.80 0.18 24);
+  --danger-soft: oklch(0.27 0.05 22);
+  --info: oklch(0.82 0.14 250);
+  --info-soft: oklch(0.27 0.05 250);
+  --surface-subtle: oklch(0.19 0 0);
+  --surface-strong: oklch(0.22 0 0);
   --status-success: var(--success);
   --status-warning: var(--warning);
   --status-danger: var(--danger);
@@ -192,6 +192,81 @@ html {
     -webkit-text-fill-color: var(--color-foreground) !important;
     transition: background-color 5000s ease-in-out 0s;
   }
+}
+
+/* ── ApexCharts & Recharts Universal High-Contrast Tooltip & Typography Governance ── */
+.apexcharts-canvas text {
+  font-family: var(--font-interface), system-ui, -apple-system, sans-serif !important;
+}
+
+.apexcharts-tooltip {
+  background: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.15) !important;
+  border-radius: var(--radius-md) !important;
+  overflow: hidden !important;
+}
+
+.apexcharts-tooltip * {
+  color: var(--card-foreground) !important;
+}
+
+.apexcharts-tooltip.apexcharts-theme-dark,
+.apexcharts-tooltip.apexcharts-theme-light {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.15) !important;
+}
+
+.apexcharts-tooltip-title {
+  background: var(--surface-subtle) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--foreground) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  padding: 6px 10px !important;
+}
+
+.apexcharts-tooltip-series-group {
+  background: transparent !important;
+  padding: 4px 8px !important;
+}
+
+.apexcharts-tooltip-text {
+  color: var(--card-foreground) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.apexcharts-tooltip-text-y-value,
+.apexcharts-tooltip-text-goals-value,
+.apexcharts-tooltip-text-z-value,
+.apexcharts-tooltip-y-group span {
+  color: var(--card-foreground) !important;
+  font-weight: 700 !important;
+}
+
+.apexcharts-legend-text {
+  color: var(--foreground) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.apexcharts-pie-label,
+.apexcharts-datalabel,
+.apexcharts-datalabel-label {
+  fill: var(--muted-foreground) !important;
+}
+
+.apexcharts-datalabel-value {
+  fill: var(--foreground) !important;
+  font-weight: 700 !important;
+}
+
+.apexcharts-yaxis-label,
+.apexcharts-xaxis-label {
+  fill: var(--muted-foreground) !important;
 }
 
 /* ── AI Loader Animations ── */

@@ -26,7 +26,7 @@ function Table({ className, ...props }: React.TableHTMLAttributes<HTMLTableEleme
 }
 
 function TableHead({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("bg-[color:var(--surface-subtle)] text-left text-xs text-muted-foreground", className)} {...props} />;
+  return <thead className={cn("bg-[color:var(--surface-subtle)] text-left text-xs font-semibold text-muted-foreground", className)} {...props} />;
 }
 
 function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
