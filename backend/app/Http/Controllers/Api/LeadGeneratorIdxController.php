@@ -270,6 +270,15 @@ class LeadGeneratorIdxController extends Controller
                 : 'https://www.idx.co.id' . $raw['Logo'];
         }
 
+        $faviconUrl = null;
+        if (!empty($company->website)) {
+            $host = parse_url($company->website, PHP_URL_HOST) ?? $company->website;
+            $host = preg_replace('/^www\./', '', trim($host));
+            if ($host) {
+                $faviconUrl = "https://www.google.com/s2/favicons?domain={$host}&sz=128";
+            }
+        }
+
         $stockTrend = $this->generateStockHistory($code, $company->listing_board);
 
         return response()->json([
@@ -293,6 +302,7 @@ class LeadGeneratorIdxController extends Controller
                 'npwp' => $raw['NPWP'] ?? null,
                 'npkp' => $raw['NPKP'] ?? null,
                 'logo_url' => $logoUrl,
+                'favicon_url' => $faviconUrl,
                 'securities' => $securities,
                 'tradingview_symbol' => 'IDX:' . $code,
                 'yahoo_symbol' => $code . '.JK',

@@ -43,6 +43,77 @@ import TradingViewWidget from "./TradingViewWidget";
 
 const HighchartsReact = dynamic(() => import("highcharts-react-official"), { ssr: false });
 
+function CompanyLogoBadge({
+  idxCode,
+  companyName,
+  website,
+  logoUrl,
+  faviconUrl,
+}: {
+  idxCode: string;
+  companyName: string;
+  website?: string | null;
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
+}) {
+  const [imgError, setImgError] = useState(false);
+
+  // Extract clean hostname for favicon resolution
+  const cleanDomain = useMemo(() => {
+    if (!website) return null;
+    try {
+      const url = website.startsWith("http") ? website : `https://${website}`;
+      return new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+      return null;
+    }
+  }, [website]);
+
+  // Priority order:
+  // 1. Backend-provided verified favicon_url
+  // 2. Google Favicon CDN (high-res 128px) via verified domain
+  // 3. logoUrl only if NOT from idx.co.id (IDX blocks external hotlinking with HTTP 403)
+  const candidateSrc = useMemo(() => {
+    if (faviconUrl) return faviconUrl;
+    if (cleanDomain) {
+      return `https://www.google.com/s2/favicons?domain=${cleanDomain}&sz=128`;
+    }
+    if (logoUrl && !logoUrl.includes("idx.co.id")) {
+      return logoUrl;
+    }
+    return null;
+  }, [faviconUrl, cleanDomain, logoUrl]);
+
+  if (!candidateSrc || imgError) {
+    // Ultra-clean corporate monogram avatar - never shows broken image icon
+    return (
+      <div
+        className="h-16 w-16 shrink-0 rounded-2xl bg-gradient-to-br from-[var(--brand)]/15 via-[var(--brand)]/5 to-transparent border border-[var(--brand)]/30 flex flex-col items-center justify-center p-1.5 shadow-xs select-none"
+        title={companyName}
+      >
+        <span className="font-mono font-black text-sm tracking-tight text-[color:var(--brand)]">
+          {idxCode.slice(0, 4)}
+        </span>
+        <span className="text-[9px] font-bold tracking-widest text-muted-foreground uppercase mt-0.5">
+          IDX
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-16 w-16 shrink-0 rounded-2xl border border-border bg-white dark:bg-card p-2.5 flex items-center justify-center overflow-hidden shadow-xs">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={candidateSrc}
+        alt={companyName || idxCode}
+        className="max-h-full max-w-full object-contain"
+        onError={() => setImgError(true)}
+      />
+    </div>
+  );
+}
+
 export default function IdxCompanyDetailPage() {
   const routerParams = useParams();
   const rawCode = (routerParams?.code as string | string[] | undefined) || "";
@@ -358,16 +429,13 @@ Kegiatan Usaha: ${company.main_business || "-"}`;
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
             <div className="flex items-start gap-4">
-              {company.logo_url ? (
-                <div className="h-16 w-16 shrink-0 rounded-xl border border-border bg-white dark:bg-muted/30 p-2 flex items-center justify-center overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={company.logo_url} alt={company.idx_code} className="max-h-full max-w-full object-contain" />
-                </div>
-              ) : (
-                <div className="h-16 w-16 shrink-0 rounded-xl border border-border bg-muted/40 flex items-center justify-center">
-                  <Building2 className="h-8 w-8 text-muted-foreground/60" />
-                </div>
-              )}
+              <CompanyLogoBadge
+                idxCode={company.idx_code}
+                companyName={company.company_name}
+                website={company.website}
+                logoUrl={company.logo_url}
+                faviconUrl={company.favicon_url}
+              />
 
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
@@ -424,10 +492,11 @@ Kegiatan Usaha: ${company.main_business || "-"}`;
         </CardContent>
       </Card>
 
-      {/* Grid: Stock Visualization (Left 2 cols) & B2B Commercial Signals (Right 1 col) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Stock Movement Visualizer */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Main Fluid Responsive Grid (Balanced 12-Column Architecture) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Primary Column: Market Data, Business Operations & Official Disclosures (8 cols) */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+          {/* 1. Stock Movement Visualizer */}
           <Card className="border border-border shadow-xs overflow-hidden">
             <div className="p-4 sm:p-5 border-b border-border flex flex-wrap items-center justify-between gap-3 bg-muted/10">
               <div className="flex items-center gap-2">
@@ -520,23 +589,137 @@ Kegiatan Usaha: ${company.main_business || "-"}`;
             </CardContent>
           </Card>
 
-          {/* Core Business & Operations Description */}
+          {/* 2. Core Business & Operations Description */}
           <Card className="border border-border shadow-xs">
-            <CardContent className="p-6 space-y-3">
-              <div className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-[color:var(--brand)]" />
-                <h3 className="text-sm font-semibold">Kegiatan Usaha Utama & Operasional</h3>
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-[color:var(--brand)]" />
+                  <h3 className="text-sm font-semibold">Kegiatan Usaha Utama & Operasional</h3>
+                </div>
+                <Badge variant="outline" className="text-xs font-normal">
+                  {company.sub_sector || company.sector || "Umum"}
+                </Badge>
               </div>
               <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line bg-muted/10 p-4 rounded-xl border border-border/60">
                 {company.main_business || "Informasi deskripsi kegiatan usaha utama belum tercatat di data IDX."}
               </p>
+
+              {/* Taxonomy detail tags */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+                <div className="p-2.5 rounded-lg border border-border/40 bg-muted/15">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Sektor</span>
+                  <span className="font-medium text-foreground truncate block">{company.sector || "-"}</span>
+                </div>
+                <div className="p-2.5 rounded-lg border border-border/40 bg-muted/15">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Sub Sektor</span>
+                  <span className="font-medium text-foreground truncate block">{company.sub_sector || "-"}</span>
+                </div>
+                <div className="p-2.5 rounded-lg border border-border/40 bg-muted/15">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Industri</span>
+                  <span className="font-medium text-foreground truncate block">{company.industry || "-"}</span>
+                </div>
+                <div className="p-2.5 rounded-lg border border-border/40 bg-muted/15">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Papan Listing</span>
+                  <span className="font-medium text-foreground truncate block">{company.listing_board || "Utama"}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 3. Official IDX Disclosures & Document Portal */}
+          <Card className="border border-border shadow-xs">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-2 border-b border-border/60 pb-3">
+                <FileText className="h-4 w-4 text-[color:var(--brand)]" />
+                <h3 className="text-sm font-semibold">Keterbukaan Informasi & Dokumen Resmi Emiten</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Tautan langsung ke dokumentasi resmi Bursa Efek Indonesia (IDX) untuk audit mendalam dan verifikasi kepatuhan:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <a
+                  href={company.idx_financial_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-3 rounded-xl border border-border/60 bg-muted/10 hover:bg-accent/40 transition-colors flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <FileText className="h-4 w-4 text-emerald-500 shrink-0" />
+                    <div>
+                      <span className="font-semibold text-foreground group-hover:text-[color:var(--brand)] transition-colors block">
+                        Laporan Keuangan & Tahunan
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">Unduh laporan kuartalan resmi IDX</span>
+                    </div>
+                  </div>
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-[color:var(--brand)] transition-colors" />
+                </a>
+
+                <a
+                  href={company.idx_official_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-3 rounded-xl border border-border/60 bg-muted/10 hover:bg-accent/40 transition-colors flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ShieldCheck className="h-4 w-4 text-blue-500 shrink-0" />
+                    <div>
+                      <span className="font-semibold text-foreground group-hover:text-[color:var(--brand)] transition-colors block">
+                        Profil Resmi Emiten di IDX
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">Status pencatatan & keterbukaan bursa</span>
+                    </div>
+                  </div>
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-[color:var(--brand)] transition-colors" />
+                </a>
+
+                <a
+                  href={`https://www.google.com/search?q=${encodeURIComponent(`${company.company_name} keterbukaan informasi IDX`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-3 rounded-xl border border-border/60 bg-muted/10 hover:bg-accent/40 transition-colors flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Search className="h-4 w-4 text-amber-500 shrink-0" />
+                    <div>
+                      <span className="font-semibold text-foreground group-hover:text-[color:var(--brand)] transition-colors block">
+                        Arsip Berita & Aksi Korporasi
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">Dividen, RUPS, dan ekspansi bisnis</span>
+                    </div>
+                  </div>
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-[color:var(--brand)] transition-colors" />
+                </a>
+
+                {company.website && (
+                  <a
+                    href={company.website.startsWith("http") ? company.website : `https://${company.website}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-3 rounded-xl border border-border/60 bg-muted/10 hover:bg-accent/40 transition-colors flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Globe className="h-4 w-4 text-[color:var(--brand)] shrink-0" />
+                      <div>
+                        <span className="font-semibold text-foreground group-hover:text-[color:var(--brand)] transition-colors block">
+                          Hubungan Investor (IR Portal)
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">Situs korporat {company.idx_code}</span>
+                      </div>
+                    </div>
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-[color:var(--brand)] transition-colors" />
+                  </a>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column: Commercial & B2B Action Intelligence */}
-        <div className="space-y-6">
-          {/* B2B Commercial Signals Card */}
+        {/* Right Secondary Column: B2B Commercial Signals, Contacts & Securities (4-5 cols) */}
+        <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+          {/* 1. B2B Commercial Signals Card */}
           <Card className="border border-border shadow-xs">
             <CardContent className="p-5 space-y-4">
               <div className="flex items-center gap-2">
@@ -606,10 +789,80 @@ Kegiatan Usaha: ${company.main_business || "-"}`;
             </CardContent>
           </Card>
 
-          {/* Emiten Securities & IPO Registry */}
+          {/* 2. Official Headquarters & Contact Directory */}
+          <Card className="border border-border shadow-xs">
+            <CardContent className="p-5 space-y-3.5">
+              <div className="flex items-center gap-2 border-b border-border/60 pb-3">
+                <MapPin className="h-4 w-4 text-[color:var(--brand)]" />
+                <h3 className="text-sm font-semibold">Kontak Kantor Pusat & Kesekretariatan</h3>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                {company.address && (
+                  <div className="p-3 rounded-xl border border-border/60 bg-muted/15 space-y-1">
+                    <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-[color:var(--brand)]" /> Alamat Kantor Pusat
+                    </span>
+                    <p className="text-foreground leading-relaxed pt-0.5">
+                      {company.address}
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between py-1.5 border-b border-border/40">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5" /> Telepon
+                    </span>
+                    <span className="font-mono font-medium text-foreground">{company.phone || "-"}</span>
+                  </div>
+
+                  {company.fax && (
+                    <div className="flex items-center justify-between py-1.5 border-b border-border/40">
+                      <span className="text-muted-foreground">Faksimili</span>
+                      <span className="font-mono font-medium text-foreground">{company.fax}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between py-1.5 border-b border-border/40">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5" /> Email Resmi
+                    </span>
+                    {company.email ? (
+                      <a href={`mailto:${company.email}`} className="text-[color:var(--brand)] hover:underline font-medium truncate max-w-[200px]">
+                        {company.email}
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between py-1.5 border-b border-border/40">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Globe className="h-3.5 w-3.5" /> Website
+                    </span>
+                    {company.website ? (
+                      <a
+                        href={company.website.startsWith("http") ? company.website : `https://${company.website}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[color:var(--brand)] hover:underline font-medium inline-flex items-center gap-1 truncate max-w-[200px]"
+                      >
+                        {company.website} <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 3. Emiten Securities & IPO Registry */}
           <Card className="border border-border shadow-xs">
             <CardContent className="p-5 space-y-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 border-b border-border/60 pb-3">
                 <Coins className="h-4 w-4 text-[color:var(--brand)]" />
                 <h3 className="text-sm font-semibold">Efek Terbitan & Administrasi Saham</h3>
               </div>
@@ -658,78 +911,6 @@ Kegiatan Usaha: ${company.main_business || "-"}`;
           </Card>
         </div>
       </div>
-
-      {/* Full Corporate Directory & Official Contacts */}
-      <Card className="border border-border shadow-xs">
-        <CardContent className="p-6 space-y-4">
-          <div className="flex items-center gap-2 border-b border-border/60 pb-3">
-            <MapPin className="h-4 w-4 text-[color:var(--brand)]" />
-            <h3 className="text-sm font-semibold">Kontak Kantor Pusat & Sekretariat Perusahaan</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-            <div className="p-3.5 rounded-xl border border-border/60 bg-muted/10 space-y-1">
-              <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
-                <MapPin className="h-3.5 w-3.5" /> Alamat Kantor Pusat
-              </span>
-              <p className="text-foreground whitespace-pre-line leading-relaxed pt-1">
-                {company.address || "-"}
-              </p>
-            </div>
-
-            <div className="p-3.5 rounded-xl border border-border/60 bg-muted/10 space-y-1">
-              <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
-                <Phone className="h-3.5 w-3.5" /> Telepon & Faksimili
-              </span>
-              <p className="text-foreground pt-1 font-mono">
-                Tel: {company.phone || "-"}
-              </p>
-              {company.fax && (
-                <p className="text-foreground font-mono">
-                  Fax: {company.fax}
-                </p>
-              )}
-            </div>
-
-            <div className="p-3.5 rounded-xl border border-border/60 bg-muted/10 space-y-1">
-              <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
-                <Mail className="h-3.5 w-3.5" /> Email Resmi Korporat
-              </span>
-              <p className="pt-1">
-                {company.email ? (
-                  <a href={`mailto:${company.email}`} className="text-[color:var(--brand)] hover:underline break-all font-medium">
-                    {company.email}
-                  </a>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </p>
-              <span className="text-[10px] text-muted-foreground block mt-1">Corporate Secretary / Investor Relations</span>
-            </div>
-
-            <div className="p-3.5 rounded-xl border border-border/60 bg-muted/10 space-y-1">
-              <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
-                <Globe className="h-3.5 w-3.5" /> Website Resmi
-              </span>
-              <p className="pt-1">
-                {company.website ? (
-                  <a
-                    href={company.website.startsWith("http") ? company.website : `https://${company.website}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[color:var(--brand)] hover:underline break-all font-medium inline-flex items-center gap-1"
-                  >
-                    {company.website} <ExternalLink className="h-3 w-3 shrink-0" />
-                  </a>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </p>
-              <span className="text-[10px] text-muted-foreground block mt-1">Portal Korporat Resmi</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
