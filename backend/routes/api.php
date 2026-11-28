@@ -178,6 +178,9 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
         Route::post('/convert', [\App\Http\Controllers\Api\LeadGeneratorNewsletterController::class, 'convert']);
     });
 
+    // Lead Generator - Social & Platform Integrations
+    Route::get('lead-generator/platforms', [IntegrationPlatformController::class, 'configuredPlatforms']);
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/dashboard/team-performance', [TeamPerformanceDashboardController::class, 'index']);

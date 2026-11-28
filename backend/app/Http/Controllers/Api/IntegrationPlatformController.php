@@ -20,6 +20,138 @@ class IntegrationPlatformController extends Controller
         return response()->json(['data' => array_values($this->platforms())]);
     }
 
+    /**
+     * Return all available platforms with their live configured & active status for the current tenant.
+     * Accessible by authenticated lead generator users to filter active channels.
+     */
+    public function configuredPlatforms(Request $request): JsonResponse
+    {
+        $tenant = $request->user()?->tenant ?? auth('sanctum')->user()?->tenant;
+        $platforms = $this->platforms();
+
+        $meta = [
+            'facebook' => [
+                'group' => 'Social & Paid Ads',
+                'description' => 'Penangkapan prospek otomatis dari Facebook Lead Generation Ads',
+                'icon' => 'Share2',
+            ],
+            'instagram' => [
+                'group' => 'Social & Paid Ads',
+                'description' => 'Intake formulir prospek, direct messages, dan pemicu komentar Instagram',
+                'icon' => 'Share2',
+            ],
+            'tiktok' => [
+                'group' => 'Social & Paid Ads',
+                'description' => 'Penangkapan prospek otomatis dari TikTok Lead Generation Ads via Webhook',
+                'icon' => 'Video',
+            ],
+            'youtube' => [
+                'group' => 'Social & Paid Ads',
+                'description' => 'Sinkronisasi metrik interaksi video dan pemicu prospek YouTube',
+                'icon' => 'Video',
+            ],
+            'linkedin' => [
+                'group' => 'Social & Paid Ads',
+                'description' => 'Integrasi formulir prospek profesional LinkedIn Lead Gen Forms',
+                'icon' => 'Share2',
+            ],
+            'google_ads' => [
+                'group' => 'Social & Paid Ads',
+                'description' => 'Penangkapan prospek dari Google Ads Lead Form Extensions',
+                'icon' => 'Megaphone',
+            ],
+            'mekari_qontak' => [
+                'group' => 'CRM & Omnichannel',
+                'description' => 'Handoff prospek teridentifikasi ke CRM omnichannel Mekari Qontak',
+                'icon' => 'MessageSquare',
+            ],
+            'hubspot' => [
+                'group' => 'CRM & Omnichannel',
+                'description' => 'Sinkronisasi dua arah untuk kontak dan prospek HubSpot CRM',
+                'icon' => 'Database',
+            ],
+            'salesforce' => [
+                'group' => 'CRM & Omnichannel',
+                'description' => 'Sinkronisasi pipeline prospek dan akun perusahaan ke Salesforce',
+                'icon' => 'Database',
+            ],
+            'pipedrive' => [
+                'group' => 'CRM & Omnichannel',
+                'description' => 'Sinkronisasi kontak dan kesepakatan bisnis ke Pipedrive CRM',
+                'icon' => 'Database',
+            ],
+            'zapier' => [
+                'group' => 'Automation & Webhooks',
+                'description' => 'Pemicu otomatisasi alur kerja outbound melalui Zapier Webhook',
+                'icon' => 'Webhook',
+            ],
+            'make' => [
+                'group' => 'Automation & Webhooks',
+                'description' => 'Otomatisasi skenario multi-langkah melalui Make Webhook gateway',
+                'icon' => 'Share2',
+            ],
+            'hunter' => [
+                'group' => 'Data & Enrichment',
+                'description' => 'Verifikasi alamat email dan pengayaan domain kontak B2B',
+                'icon' => 'BadgeCheck',
+            ],
+        ];
+
+        $items = [];
+        $configuredCount = 0;
+
+        foreach ($platforms as $id => $p) {
+            $values = $this->values($request, $id);
+            $isEnabled = filter_var($values['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+            // Check non-empty credential values excluding config flags
+            $nonEmptyCreds = array_filter(
+                $values,
+                fn ($v, $k) => ! in_array($k, ['enabled', 'api_mode'], true) && ! empty($v),
+                ARRAY_FILTER_USE_BOTH
+            );
+            $hasCredentials = count($nonEmptyCreds) > 0;
+
+            // Extra module check for mekari_qontak if applicable
+            $isModuleBlocked = false;
+            if ($id === 'mekari_qontak' && $tenant && ! $tenant->hasModule('mekari_qontak')) {
+                $isModuleBlocked = true;
+            }
+
+            $status = 'unconfigured';
+            if ($isEnabled && $hasCredentials && ! $isModuleBlocked) {
+                $status = 'active';
+                $configuredCount++;
+            } elseif (($isEnabled || $hasCredentials) && ! $isModuleBlocked) {
+                $status = 'configured';
+                $configuredCount++;
+            }
+
+            $items[] = [
+                'id' => $id,
+                'name' => $p['name'],
+                'docs_url' => $p['docs_url'] ?? null,
+                'group' => $meta[$id]['group'] ?? 'General',
+                'description' => $meta[$id]['description'] ?? 'Integrasi saluran prospek',
+                'icon' => $meta[$id]['icon'] ?? 'Share2',
+                'is_enabled' => $isEnabled,
+                'has_credentials' => $hasCredentials,
+                'is_configured' => $status !== 'unconfigured',
+                'status' => $status,
+                'settings_url' => '/settings/integrations?tab=platforms',
+            ];
+        }
+
+        return response()->json([
+            'data' => $items,
+            'summary' => [
+                'total' => count($items),
+                'configured_count' => $configuredCount,
+                'unconfigured_count' => count($items) - $configuredCount,
+            ],
+        ]);
+    }
+
     public function oauthUrl(Request $request, string $platform): JsonResponse
     {
         $definition = $this->platform($platform);

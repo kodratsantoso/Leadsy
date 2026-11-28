@@ -159,6 +159,45 @@ class IntegrationPlatformApiTest extends TestCase
             && $request['refresh_token'] === 'refresh-token');
     }
 
+    public function test_configured_platforms_endpoint_returns_channel_status(): void
+    {
+        $this->withoutMiddleware(CheckPermission::class);
+        $user = $this->makeUser();
+
+        // Enable and configure a platform
+        $this->saveConfig($user, 'FACEBOOK_ENABLED', '1', false);
+        $this->saveConfig($user, 'FACEBOOK_ACCESS_TOKEN', 'eaab-test-token', true);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/lead-generator/platforms')
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id',
+                        'name',
+                        'group',
+                        'description',
+                        'is_enabled',
+                        'has_credentials',
+                        'is_configured',
+                        'status',
+                    ],
+                ],
+                'summary' => [
+                    'total',
+                    'configured_count',
+                    'unconfigured_count',
+                ],
+            ]);
+
+        $data = collect($response->json('data'));
+        $fb = $data->firstWhere('id', 'facebook');
+        $this->assertNotNull($fb);
+        $this->assertTrue($fb['is_configured']);
+        $this->assertSame('active', $fb['status']);
+    }
+
     private function makeUser(): User
     {
         $tenant = Tenant::query()->first() ?? Tenant::create([

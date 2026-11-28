@@ -17,10 +17,10 @@ const generatorModules = [
   },
   {
     title: "Social & Platform Generator",
-    description: "Prepare inbound lead flows from Instagram, TikTok, YouTube, LinkedIn, Google Ads, CRM, automation, and enrichment channels.",
+    description: "Monitor dan kelola saluran prospek otomatis dari akun media sosial, formulir iklan, dan CRM terintegrasi.",
     href: "/lead-generator/platforms",
     icon: Share2,
-    badge: "Foundation",
+    badge: "Channels",
   },
   {
     title: "Webhook & Event Intake",

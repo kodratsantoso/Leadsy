@@ -318,8 +318,7 @@ Source of truth: `frontend/app/lead-generator/`
 
 **Features & Layout:**
 - **Industry Intelligence Newsletter (`/lead-generator/newsletter`):** DB-cached commercial news aggregator scoped by `Industry` and `SubIndustry`. Initial discovery fetches Google News RSS + configured `WebSearchManager` providers, extracts corporate/brand entities (`industry_news_extraction` AI feature with deterministic regex fallback), cross-checks existing CRM leads via `LeadDuplicateDetectionService`, and permanently archives editions in PostgreSQL (`industry_news_articles`, `industry_news_entities`, `industry_news_sync_logs`) so subsequent reads are instantaneous. Exposes editorial structured telemetry headers, dual `Briefing Wire` and `Detected Entities` views, and 1-click/batch conversion into CRM `Lead` records (`Source: News Intelligence`, `Channel: Industry Newsletter`).
-- **Platforms List (`/platforms`):** Details capability sets for Instagram Graph API, TikTok Business API, YouTube Analytics, LinkedIn Marketing, Google Ads, Mekari Qontak, and external CRM sync partners (HubSpot, Salesforce, Pipedrive).
-- **Inbound Lead Flow Foundation:** Integrates security policies such as AES-256-GCM encrypted credentials vaulting and idempotency-keyed webhook event queues.
+- **Platforms List (`/lead-generator/platforms`):** Dynamically audits and presents active/configured inbound lead platforms (`/api/lead-generator/platforms`), filtering out unconfigured platform clutter by default with clean dual-tab navigation (`Platform Terkonfigurasi` vs `Katalog Platform Tersedia`). Integrates seamless management redirects to `/settings/integrations?tab=platforms` and supports Instagram, TikTok, YouTube, LinkedIn, Google Ads, Mekari Qontak, HubSpot, Salesforce, Pipedrive, Zapier, Make, and Hunter.io.
 
 ## OpenSearch 1.1 Draft 6 Module
 
