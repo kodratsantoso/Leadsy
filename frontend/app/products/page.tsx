@@ -1,17 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Package, Loader2, Pencil, Trash2, Layers, Globe, Tag, Sparkles, Building2, CheckCircle2, X } from "lucide-react";
+import Link from "next/link";
+import {
+  Plus,
+  Package,
+  Loader2,
+  Pencil,
+  Trash2,
+  Layers,
+  Globe,
+  Tag,
+  Building2,
+  CheckCircle2,
+  X,
+  List,
+  LayoutGrid,
+  ExternalLink,
+  DollarSign,
+} from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FilterBar, FilterBarSearch } from "@/components/ui/filter-bar";
+import { Card, CardContent } from "@/components/ui/card";
+import { FilterBarSearch } from "@/components/ui/filter-bar";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
+import {
+  TableShell,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeaderCell,
+  TableCell,
+} from "@/components/ui/table";
+import { ProductLogoUploader } from "@/components/products/ProductLogoUploader";
 import { apiFetch } from "@/lib/apiFetch";
 
 type ProductRecord = {
@@ -42,13 +69,16 @@ function ProductCardLogo({
   name: string;
 }) {
   const [failed, setFailed] = useState(false);
-  const src = logoUrl || (logoPath ? `/api/products/${productId}/logo` : null);
+  const src =
+    logoUrl ||
+    (logoPath ? `/api/products/${productId}/logo?v=${encodeURIComponent(logoPath)}` : null);
 
   if (!src || failed) {
     return <Package className="h-5 w-5 text-primary" />;
   }
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt={name}
@@ -61,6 +91,7 @@ function ProductCardLogo({
 export default function ProductsPage() {
   const qc = useQueryClient();
   const router = useRouter();
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -70,6 +101,7 @@ export default function ProductsPage() {
   const [formCategory, setFormCategory] = useState("");
   const [formWebsiteUrl, setFormWebsiteUrl] = useState("");
   const [formDescription, setFormDescription] = useState("");
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<ProductRecord | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -88,7 +120,7 @@ export default function ProductsPage() {
     new Set(
       categoriesList.length > 0
         ? categoriesList
-        : rawProducts.map((p) => p.category?.trim()).filter(Boolean) as string[]
+        : (rawProducts.map((p) => p.category?.trim()).filter(Boolean) as string[])
     )
   );
 
@@ -98,16 +130,33 @@ export default function ProductsPage() {
       category?: string;
       website_url?: string;
       description?: string;
+      logoFile?: File | null;
     }) => {
-      return apiFetch("/products", {
+      const { logoFile, ...productPayload } = payload;
+      const res = await apiFetch("/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }).then((res) => res.json());
+        body: JSON.stringify(productPayload),
+      });
+      const data = await res.json();
+      const newId = data?.data?.id;
+
+      // If a brand logo was selected in the create modal, upload it right away
+      if (newId && logoFile) {
+        const formData = new FormData();
+        formData.append("logo", logoFile);
+        await apiFetch(`/products/${newId}/logo`, {
+          method: "POST",
+          body: formData,
+        });
+      }
+
+      return data;
     },
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["products"] });
       setShowCreateModal(false);
+      setPendingLogoFile(null);
       if (res.data?.id) {
         router.push(`/products/${res.data.id}`);
       }
@@ -142,7 +191,11 @@ export default function ProductsPage() {
     return matchSearch && matchCategory && matchStatus;
   });
 
-  const activeProductsCount = rawProducts.filter((p) => p.status === "active").length;
+  const activeProductsCount = rawProducts.filter((p) => (p.status || "active") === "active").length;
+  const totalTiersCount = rawProducts.reduce((sum, p) => {
+    const count = p.tiers_count ?? (p.tiers ? p.tiers.length : 0);
+    return sum + count;
+  }, 0);
 
   const handleCreate = () => {
     if (!formName.trim()) return;
@@ -151,6 +204,7 @@ export default function ProductsPage() {
       category: formCategory.trim() || undefined,
       website_url: formWebsiteUrl.trim() || undefined,
       description: formDescription.trim() || undefined,
+      logoFile: pendingLogoFile,
     });
   };
 
@@ -161,12 +215,12 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header & KPI Overview */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Products & Solutions</h1>
           <p className="text-sm text-muted-foreground">
-            Manage your solution catalog, pricing tiers, and AI sales battlecards.
+            Manage your solution catalog, brand logos, pricing tiers, and commercial document settings.
           </p>
         </div>
         <Button
@@ -175,6 +229,7 @@ export default function ProductsPage() {
             setFormCategory("");
             setFormWebsiteUrl("");
             setFormDescription("");
+            setPendingLogoFile(null);
             setShowCreateModal(true);
           }}
         >
@@ -184,8 +239,8 @@ export default function ProductsPage() {
       </div>
 
       {/* KPI Counters */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl border border-border bg-card flex items-center justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 rounded-xl border border-border bg-card flex items-center justify-between shadow-xs">
           <div>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Total Products
@@ -193,13 +248,14 @@ export default function ProductsPage() {
             <div className="text-2xl font-bold tracking-tight text-foreground mt-0.5">
               {rawProducts.length}
             </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Catalog master list</div>
           </div>
           <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
             <Package className="h-5 w-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-xl border border-border bg-card flex items-center justify-between">
+        <div className="p-4 rounded-xl border border-border bg-card flex items-center justify-between shadow-xs">
           <div>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Active in CRM
@@ -207,13 +263,18 @@ export default function ProductsPage() {
             <div className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 mt-0.5">
               {activeProductsCount}
             </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              {rawProducts.length > 0
+                ? `${Math.round((activeProductsCount / rawProducts.length) * 100)}% available`
+                : "No active products"}
+            </div>
           </div>
           <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="h-5 w-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-xl border border-border bg-card flex items-center justify-between">
+        <div className="p-4 rounded-xl border border-border bg-card flex items-center justify-between shadow-xs">
           <div>
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Categories
@@ -221,16 +282,32 @@ export default function ProductsPage() {
             <div className="text-2xl font-bold tracking-tight text-foreground mt-0.5">
               {categories.length}
             </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Solution clusters</div>
           </div>
           <div className="p-2.5 rounded-lg bg-muted text-muted-foreground">
             <Tag className="h-5 w-5" />
           </div>
         </div>
+
+        <div className="p-4 rounded-xl border border-border bg-card flex items-center justify-between shadow-xs">
+          <div>
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Pricing Packages
+            </div>
+            <div className="text-2xl font-bold tracking-tight text-foreground mt-0.5">
+              {totalTiersCount}
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Active tier offerings</div>
+          </div>
+          <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <Layers className="h-5 w-5" />
+          </div>
+        </div>
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter Bar & View Switcher */}
       <div className="space-y-2.5">
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           <div className="flex-1">
             <FilterBarSearch
               value={search}
@@ -238,7 +315,7 @@ export default function ProductsPage() {
               placeholder="Search products by name, description, or category..."
             />
           </div>
-          <div className="w-full sm:w-64">
+          <div className="w-full sm:w-56">
             <Select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
@@ -254,7 +331,7 @@ export default function ProductsPage() {
               })}
             </Select>
           </div>
-          <div className="w-full sm:w-44">
+          <div className="w-full sm:w-40">
             <Select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
@@ -263,6 +340,36 @@ export default function ProductsPage() {
               <option value="active">Active Only</option>
               <option value="inactive">Inactive Only</option>
             </Select>
+          </div>
+
+          {/* View Toggle */}
+          <div className="flex items-center gap-1 border border-border rounded-xl p-1 bg-card shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`p-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                viewMode === "list"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+              title="Tampilkan List View (Tabel)"
+            >
+              <List className="h-4 w-4" />
+              <span className="hidden md:inline">List</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`p-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                viewMode === "grid"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+              title="Tampilkan Grid View (Cards)"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              <span className="hidden md:inline">Grid</span>
+            </button>
           </div>
         </div>
 
@@ -324,7 +431,7 @@ export default function ProductsPage() {
         )}
       </div>
 
-      {/* Product Grid */}
+      {/* Main Content: List or Grid */}
       {isLoading ? (
         <div className="py-16 text-center">
           <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground mb-2" />
@@ -355,7 +462,153 @@ export default function ProductsPage() {
             )}
           </CardContent>
         </Card>
+      ) : viewMode === "list" ? (
+        /* ================= LIST VIEW (TABLE) ================= */
+        <TableShell>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeaderCell className="w-[38%]">Produk & Brand</TableHeaderCell>
+                <TableHeaderCell className="w-[20%]">Kategori & Industri</TableHeaderCell>
+                <TableHeaderCell className="w-[18%]">Paket & Harga</TableHeaderCell>
+                <TableHeaderCell className="w-[10%]">Status</TableHeaderCell>
+                <TableHeaderCell className="w-[14%] text-right">Aksi</TableHeaderCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredProducts.map((product) => {
+                const tiersCount = product.tiers_count ?? (product.tiers ? product.tiers.length : 0);
+                const startingPrice =
+                  product.starting_price ??
+                  (product.tiers && product.tiers.length > 0
+                    ? Math.min(...product.tiers.map((t: any) => t.price || 0))
+                    : null);
+
+                return (
+                  <TableRow key={product.id} className="group hover:bg-muted/40 transition-colors">
+                    {/* Produk & Logo */}
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted/60 border border-border/80 overflow-hidden p-1 shadow-2xs">
+                          <ProductCardLogo
+                            productId={product.id}
+                            logoUrl={product.logo_url}
+                            logoPath={product.logo_path}
+                            name={product.name}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <Link
+                            href={`/products/${product.id}`}
+                            className="font-semibold text-foreground hover:text-primary transition-colors block truncate hover:underline"
+                            title={product.name}
+                          >
+                            {product.name}
+                          </Link>
+                          {product.description ? (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                              {product.description}
+                            </p>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground/60 italic">
+                              Tidak ada deskripsi
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    {/* Kategori & Industri */}
+                    <TableCell>
+                      <div className="space-y-1">
+                        {product.category ? (
+                          <Badge variant="neutral" className="text-[11px] font-medium">
+                            {product.category}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                        {product.target_industry && (
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground truncate">
+                            <Building2 className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{product.target_industry}</span>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    {/* Paket & Harga */}
+                    <TableCell>
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                          <Layers className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span>{tiersCount > 0 ? `${tiersCount} Packages` : "No tiers"}</span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          {startingPrice !== null ? (
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                              Mulai {formatPrice(startingPrice)}/bln
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/70">Harga belum diatur</span>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell>
+                      <Badge
+                        variant={(product.status || "active") === "active" ? "success" : "neutral"}
+                        className="uppercase text-[10px] px-2 py-0.5"
+                      >
+                        {product.status || "Active"}
+                      </Badge>
+                    </TableCell>
+
+                    {/* Aksi */}
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs font-medium"
+                          onClick={() => router.push(`/products/${product.id}`)}
+                          title="Buka detail product"
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" />
+                          Detail
+                        </Button>
+
+                        <a
+                          href={`/products/${product.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border/70 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          title="Buka di Tab Baru"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 border-border/70"
+                          onClick={() => setDeleteProduct(product)}
+                          title="Hapus Produk"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableShell>
       ) : (
+        /* ================= GRID VIEW (CARDS) ================= */
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filteredProducts.map((product) => {
             const tiersCount = product.tiers_count ?? (product.tiers ? product.tiers.length : 0);
@@ -374,7 +627,7 @@ export default function ProductsPage() {
                   {/* Top Bar: Logo / Avatar & Status */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted/60 border border-border/60 overflow-hidden p-1">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted/60 border border-border/60 overflow-hidden p-1 shadow-2xs">
                         <ProductCardLogo
                           productId={product.id}
                           logoUrl={product.logo_url}
@@ -388,13 +641,16 @@ export default function ProductsPage() {
                             {product.category}
                           </span>
                         )}
-                        <h3 className="font-bold text-base text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                        <Link
+                          href={`/products/${product.id}`}
+                          className="font-bold text-base text-foreground line-clamp-1 group-hover:text-primary transition-colors hover:underline"
+                        >
                           {product.name}
-                        </h3>
+                        </Link>
                       </div>
                     </div>
                     <Badge
-                      variant={product.status === "active" ? "success" : "neutral"}
+                      variant={(product.status || "active") === "active" ? "success" : "neutral"}
                       className="shrink-0 uppercase text-[10px] px-2 py-0.5"
                     >
                       {product.status || "Active"}
@@ -448,11 +704,23 @@ export default function ProductsPage() {
                       <Pencil className="h-3.5 w-3.5 mr-1.5" />
                       Manage Details
                     </Button>
+
+                    <a
+                      href={`/products/${product.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border/70 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                      title="Buka di Tab Baru"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-destructive hover:bg-destructive/10 border-border/50 shrink-0 h-8 w-8 p-0"
                       onClick={() => setDeleteProduct(product)}
+                      title="Delete Product"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -496,7 +764,7 @@ export default function ProductsPage() {
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         title="Add New Product"
-        description="Configure your solution details. You can set up AI reference materials and pricing tiers in the next step."
+        description="Configure your solution details and brand logo. You can set up AI reference materials and pricing tiers in the next step."
         size="md"
         footer={
           <>
@@ -516,6 +784,16 @@ export default function ProductsPage() {
         }
       >
         <div className="space-y-4">
+          {/* Logo Staging Area */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground">Product Logo (Opsional)</label>
+            <ProductLogoUploader
+              productName={formName || "Product Baru"}
+              onPendingFileChange={setPendingLogoFile}
+              compact
+            />
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-muted-foreground">Product Name *</label>
             <Input

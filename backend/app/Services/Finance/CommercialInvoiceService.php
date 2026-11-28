@@ -234,6 +234,7 @@ class CommercialInvoiceService
 
         // Logo Base64 (Only load if GD extension is available for DomPDF)
         $logoBase64 = null;
+        $productLogoBase64 = null;
         if (extension_loaded('gd') && function_exists('imagecreatetruecolor')) {
             $logoPath = public_path('images/logo.png');
             if (!file_exists($logoPath)) {
@@ -243,6 +244,29 @@ class CommercialInvoiceService
                 $logoData = file_get_contents($logoPath);
                 $mime = mime_content_type($logoPath) ?: 'image/png';
                 $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode($logoData);
+            }
+
+            // Resolve Product Logo for Invoice if single product is referenced
+            $productId = null;
+            if ($salesOrder) {
+                $pIds = $salesOrder->items?->pluck('product_id')->filter()->unique();
+                if ($pIds && $pIds->count() === 1) {
+                    $productId = $pIds->first();
+                }
+            }
+            if (!$productId && $invoice->items) {
+                $pIds = $invoice->items->pluck('product_id')->filter()->unique();
+                if ($pIds && $pIds->count() === 1) {
+                    $productId = $pIds->first();
+                }
+            }
+            if ($productId) {
+                $product = \App\Models\Product::find($productId);
+                if ($product && $product->logo_path && Storage::disk('public')->exists($product->logo_path)) {
+                    $pContent = Storage::disk('public')->get($product->logo_path);
+                    $pMime = Storage::disk('public')->mimeType($product->logo_path) ?: 'image/png';
+                    $productLogoBase64 = 'data:' . $pMime . ';base64,' . base64_encode($pContent);
+                }
             }
         }
 
@@ -295,6 +319,7 @@ class CommercialInvoiceService
             'tenantEmail' => $tenantEmail,
             'tenantPhone' => $tenantPhone,
             'logoBase64' => $logoBase64,
+            'productLogoBase64' => $productLogoBase64,
             'customerName' => $lead?->company_name ?? ($salesOrder?->customer_name ?? 'Pelanggan'),
             'customerAddress' => $lead?->address ?? ($lead?->city ? $lead->city . ', Indonesia' : null),
             'customerPic' => $lead?->contacts?->first()?->name ?? null,

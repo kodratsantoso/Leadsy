@@ -53,6 +53,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
+import { ProductLogoUploader } from "@/components/products/ProductLogoUploader";
 import { readApiError, flattenFieldErrors } from "@/lib/apiError";
 
 import { QuestionGuide } from "@/components/products/QuestionGuide";
@@ -1735,61 +1736,17 @@ export default function ProductDetailPage() {
                     Logo displayed in the catalog and printed on PDF documents.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col items-center justify-center space-y-4">
-                  <div className="h-32 w-full border border-dashed border-border/80 rounded-xl flex items-center justify-center overflow-hidden bg-muted/30 relative p-4 transition-colors">
-                    {uploadLogoMutation.isPending || deleteLogoMutation.isPending ? (
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Updating logo...</span>
-                      </div>
-                    ) : (logoUrl || logoPath) && !logoLoadFailed ? (
-                      <img
-                        src={`/api/products/${productId}/logo?v=${encodeURIComponent(logoPath || '1')}`}
-                        className="max-h-full max-w-full object-contain"
-                        alt="Product Logo"
-                        onError={() => setLogoLoadFailed(true)}
-                      />
-                    ) : (
-                      <div className="text-center space-y-1">
-                        <Package className="mx-auto h-8 w-8 text-muted-foreground/40" />
-                        <div className="text-xs text-muted-foreground">No Logo Uploaded</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {uploadError && (
-                    <div className="w-full text-xs text-destructive font-medium text-center border border-destructive/20 bg-destructive/10 rounded-lg p-2.5">
-                      {uploadError}
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 w-full">
-                    <label className="flex-1">
-                      <span className="w-full inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md text-sm font-medium cursor-pointer transition-colors">
-                        <Upload className="h-4 w-4 mr-2" /> Upload Logo
-                      </span>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/png, image/jpeg, image/webp"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) uploadLogoMutation.mutate(file);
-                        }}
-                        disabled={uploadLogoMutation.isPending || deleteLogoMutation.isPending}
-                      />
-                    </label>
-                    {(logoUrl || logoPath) && (
-                      <Button
-                        variant="outline"
-                        onClick={() => deleteLogoMutation.mutate()}
-                        disabled={uploadLogoMutation.isPending || deleteLogoMutation.isPending}
-                        className="text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                <CardContent>
+                  <ProductLogoUploader
+                    productId={productId}
+                    currentLogoUrl={logoUrl}
+                    currentLogoPath={logoPath}
+                    productName={formName}
+                    onSave={(file) => uploadLogoMutation.mutate(file)}
+                    onDelete={() => deleteLogoMutation.mutate()}
+                    isSaving={uploadLogoMutation.isPending}
+                    isDeleting={deleteLogoMutation.isPending}
+                  />
                 </CardContent>
               </Card>
             </div>

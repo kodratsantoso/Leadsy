@@ -238,6 +238,11 @@
                 </div>
             </td>
             <td class="header-meta">
+                @if(!empty($productLogoBase64))
+                    <div style="margin-bottom: 6px;">
+                        <img src="{{ $productLogoBase64 }}" alt="Product Brand" style="max-height: 40px; max-width: 140px; object-fit: contain;">
+                    </div>
+                @endif
                 <div class="doc-title">INVOICE</div>
                 <div style="font-size: 11pt; font-weight: bold; color: #0f172a;"># {{ $invoiceNumber }}</div>
                 <div style="margin-top: 4px;">
