@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeaderCell, TableRow, TableShell } from "@/components/ui/table";
+import { useGoogleMapsTheme } from "@/lib/maps-theme";
 import dynamic from "next/dynamic";
 import Highcharts from "highcharts";
 
@@ -411,6 +412,7 @@ function MapMarkersAndInfo({
 }
 
 export default function DashboardPage() {
+  const { colorScheme: mapColorScheme, styles: mapStyles } = useGoogleMapsTheme();
   const { formatNumber, formatCurrency } = useNumberFormat();
   const [mapsApiKey, setMapsApiKey] = useState("");
   const [mapsEnabled, setMapsEnabled] = useState(true);
@@ -1687,6 +1689,8 @@ export default function DashboardPage() {
                       <APIProvider apiKey={mapsApiKey}>
                         <Map
                           mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
+                          colorScheme={mapColorScheme}
+                          styles={mapStyles}
                           defaultCenter={DEFAULT_CENTER}
                           defaultZoom={DEFAULT_ZOOM}
                           gestureHandling="greedy"

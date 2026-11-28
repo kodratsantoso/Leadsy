@@ -17,6 +17,7 @@ import {
   type SavedTerritory,
   saveTerritory,
 } from "@/lib/territory-storage";
+import { useGoogleMapsTheme } from "@/lib/maps-theme";
 
 /** Default map center (Jakarta) — adjust per deployment region as needed. */
 const DEFAULT_CENTER = { lat: -6.2088, lng: 106.8456 };
@@ -42,9 +43,13 @@ function MapPane({
   }) => void;
   onCenterChange?: (loc: google.maps.LatLngLiteral) => void;
 }) {
+  const { isDark, colorScheme, styles } = useGoogleMapsTheme();
+
   return (
     <Map
       className="h-full w-full"
+      colorScheme={colorScheme}
+      styles={styles}
       center={center}
       zoom={zoom}
       gestureHandling="greedy"
@@ -57,11 +62,11 @@ function MapPane({
       <Circle
         center={center}
         radius={radiusMeters}
-        strokeColor="oklch(0.205 0 0)"
+        strokeColor={isDark ? "oklch(0.7 0.15 260)" : "oklch(0.205 0 0)"}
         strokeOpacity={0.9}
         strokeWeight={2}
-        fillColor="oklch(0.205 0 0)"
-        fillOpacity={0.08}
+        fillColor={isDark ? "oklch(0.7 0.15 260)" : "oklch(0.205 0 0)"}
+        fillOpacity={isDark ? 0.12 : 0.08}
       />
       <Marker
         position={center}
@@ -99,10 +104,7 @@ function GeocodeSearch({
       const geocoder = new geocodingLib.Geocoder();
       geocoder.geocode(
         { address: address.trim() },
-        (
-          results: google.maps.GeocoderResult[] | null,
-          status: google.maps.GeocoderStatus,
-        ) => {
+        (results, status) => {
         setBusy(false);
         if (status !== "OK" || !results?.[0]?.geometry?.location) {
           setError("Location not found. Try a more specific address.");

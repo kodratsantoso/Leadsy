@@ -40,6 +40,7 @@ import { MapResultsPanel } from "@/components/map/map-results-panel";
 import { MapMarkersLayer } from "@/components/map/map-markers-layer";
 import type { AiMode } from "@/components/ai/ai-mode-selector";
 import { cn } from "@/lib/utils";
+import { useGoogleMapsTheme } from "@/lib/maps-theme";
 
 const DEFAULT_CENTER = { lat: -6.2088, lng: 106.8456 };
 
@@ -48,6 +49,7 @@ function isEnabledFlag(value: unknown) {
 }
 
 export default function MapPage() {
+  const { isDark, colorScheme, styles: mapStyles } = useGoogleMapsTheme();
   const [apiKey, setApiKey] = useState("");
   const [isMapsEnabled, setIsMapsEnabled] = useState(true);
   const [loadingKey, setLoadingKey] = useState(true);
@@ -620,6 +622,8 @@ export default function MapPage() {
             <APIProvider apiKey={apiKey}>
               <Map
                 mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
+                colorScheme={colorScheme}
+                styles={mapStyles}
                 defaultCenter={center}
                 center={center}
                 zoom={zoom}
@@ -637,11 +641,11 @@ export default function MapPage() {
                     <Circle
                       center={{ lat: activeArea.lat, lng: activeArea.lng }}
                       radius={radius}
-                      strokeColor="#6366f1"
+                      strokeColor={isDark ? "#818cf8" : "#6366f1"}
                       strokeOpacity={0.8}
                       strokeWeight={2}
-                      fillColor="#6366f1"
-                      fillOpacity={0.08}
+                      fillColor={isDark ? "#818cf8" : "#6366f1"}
+                      fillOpacity={isDark ? 0.12 : 0.08}
                     />
                     <AdvancedMarker
                       position={{ lat: activeArea.lat, lng: activeArea.lng }}

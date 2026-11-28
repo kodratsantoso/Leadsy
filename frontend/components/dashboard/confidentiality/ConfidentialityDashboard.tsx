@@ -166,6 +166,15 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
     const series = distribution.map((d: any) => d.value);
     const labels = distribution.map((d: any) => d.name);
     
+    const LEVEL_COLORS: Record<string, string> = {
+      low: '#10b981',        // Emerald Green for Low
+      medium: '#3b82f6',     // Blue for Medium
+      high: '#f59e0b',       // Amber / Orange for High
+      restricted: '#ef4444', // Red for Restricted
+      unassessed: '#94a3b8', // Slate Gray for Unassessed
+    };
+    const chartColors = labels.map((name: string) => LEVEL_COLORS[name.toLowerCase()] || '#94a3b8');
+
     const options: any = {
       chart: { 
         type: 'donut',
@@ -182,7 +191,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
         }
       },
       labels: labels,
-      colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#94a3b8'],
+      colors: chartColors,
       stroke: {
         colors: ['var(--card)'],
         width: 2,
