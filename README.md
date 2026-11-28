@@ -4,7 +4,30 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.50.0** — 2026-11-12
+Current release: **v1.51.0** — 2026-11-28
+
+## What's New in v1.51.0 (Company News & Business Signals Intelligence, Navigation Auto-Healing & Brand Favicon)
+
+- **Company News & Business Signals Intelligence (`/leads/[id]` &gt; News &amp; Signals Tab):**
+  - *Multi-Engine News Discovery Pipeline* — Mengintegrasikan pencarian berita sekuensial cerdas (Serper Google News, Tavily AI News, Custom Endpoint, dan AI Web Search dengan Google Search Grounding) untuk menemukan publikasi media terkini tentang perusahaan prospek.
+  - *Automated Business Signals Extraction* — Mengekstraksi sinyal pertumbuhan &amp; ekspansi, risiko operasional, pergantian kepemimpinan, aksi korporasi (M&amp;A), dan pendanaan dari berita riil.
+  - *Product Master Catalog Matching* — Memetakan setiap peluang bisnis prospek secara otomatis ke data produk aktif di tabel `products` (Zero Hardcoding) lengkap dengan rekomendasi tindakan untuk sales rep.
+  - *Strategic Pitching Angles &amp; Pre-Meeting Brief Push* — Merumuskan sudut penawaran bernilai tinggi, kalimat pembuka (*icebreaker*), serta tombol *"Terapkan ke Pre-Meeting Brief"* untuk menyematkan konteks berita ke lembar persiapan rapat secara instan.
+  - *Strategic Discovery Questions* — Pertanyaan terarah untuk diajukan saat meeting guna menggali kebutuhan operasional prospek yang dipicu oleh peristiwa berita.
+  - *Verified News Feed with Provenance* — Feed artikel berita terverifikasi dengan skor relevansi, skor reliabilitas media, tautan langsung ke sumber asli penerbit, serta opsi sembunyikan/pulihkan artikel.
+
+- **Client Runtime Navigation Stability &amp; Error #310 Auto-Healing:**
+  - *Auto-Heal Recovery Mechanism (`frontend/app/error.tsx`)* — Mendeteksi desinkronisasi hook count React 19 saat perpindahan halaman (*concurrent route transition*) dan mengeksekusi `reset()` secara otomatis sehingga pengguna tidak terganggu oleh dialog error.
+  - *Stable Fiber Reconciliation Keys* — Menyematkan key stabil pada seluruh cabang kondisional di `template.tsx` dan tab Lead Detail (`OverviewTab`, `ContactsTab`, `NewsAndSignalsTab`, `IntelligenceTab`, dll.) untuk mencegah tabrakan array hook React fiber.
+  - *Localized Enterprise Error Copy* — Menggantikan pesan teknis minified dengan pesan yang ramah dan opsi pemulihan tampilan dalam satu klik.
+
+- **Official Leadsy Favicon &amp; Application Branding:**
+  - *Crisp Multi-Resolution Favicon Suite* — Menghasilkan aset favicon lengkap (`favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`) berlatar transparan dari `leadsy-logo.png`.
+  - Mengeliminasi ikon segitiga default Next.js/Vercel pada tab peramban web browser.
+
+- **Search &amp; PIC Discovery Connection Auto-Persistence:**
+  - *Instant Credential Persistence* — Pengujian koneksi mesin pencari di Settings &gt; Integrations &gt; Search &amp; PIC Discovery yang berhasil kini otomatis tersimpan dan aktif di database (`integration_configs`).
+  - *Actionable Guidance in Add Contact Modal* — Menggantikan pesan error generik *"Failed to perform deep search"* dengan pesan informatif dan tombol langsung menuju pengaturan mesin pencari.
 
 ## What's New in v1.50.0 (Enterprise Audit Trail & Live Active Sessions Management)
 

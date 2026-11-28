@@ -21,6 +21,7 @@ import {
   Loader2,
   Sparkles,
   Trash2,
+  Newspaper,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -455,6 +456,27 @@ export function OverviewTab({
             ))}
           </div>
         )}
+
+        {/* Company News & Business Signals Shortcut Card */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-3.5">
+          <div className="flex items-center gap-2.5">
+            <Newspaper className="h-4 w-4 text-blue-500 shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-foreground">Company News & Business Signals</p>
+              <p className="text-[11px] text-muted-foreground">
+                Lacak publikasi media, momentum bisnis, dan peluang penjualan terverifikasi untuk {leadData?.company_name}.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setActiveTab('news')}
+            className="text-xs h-7.5 px-3 cursor-pointer shrink-0 border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
+          >
+            Buka News & Signals ➔
+          </Button>
+        </div>
 
         {/* Relational Office, Branch & Plant Locations Table/Grid */}
         <div className="space-y-2.5">

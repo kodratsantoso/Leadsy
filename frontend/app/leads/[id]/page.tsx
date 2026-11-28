@@ -43,6 +43,7 @@ import { TranscriptsTab } from '@/components/leads/tabs/TranscriptsTab';
 import { CustomerJourneyTab } from '@/components/leads/tabs/CustomerJourneyTab';
 import { OverviewTab } from '@/components/leads/tabs/OverviewTab';
 import { RevenueTab } from '@/components/leads/tabs/RevenueTab';
+import { NewsAndSignalsTab } from '@/components/leads/NewsAndSignalsTab';
 import { CreateNewModal } from '@/components/ui/CreateNewModal';
 import { AnalysisReportDialog } from '@/components/leads/reports/AnalysisReportDialog';
 import { useToast } from "@/components/ui/toast";
@@ -161,6 +162,7 @@ const PRIMARY_WORKFLOW_TABS: WorkflowTabDefinition[] = [
     defaultSubTab: 'discovery',
     subTabs: [
       { id: 'discovery', label: 'Discovery Workspace' },
+      { id: 'news', label: 'News & Signals' },
       { id: 'intelligence', label: 'AI Screening & Insights' },
       { id: 'pre-meeting brief', label: 'Pre-Meeting Brief' },
     ],
@@ -2265,6 +2267,7 @@ export default function LeadDetailPage() {
       {/* ── OVERVIEW TAB ── */}
       {activeTab === 'overview' && (
         <OverviewTab
+          key="tab-overview"
           leadId={leadId}
           leadData={leadData}
           contacts={contacts}
@@ -2287,6 +2290,7 @@ export default function LeadDetailPage() {
       {/* ── DELIVERY WORKSPACE TABS (Team, Orders, Professional Services, Projects) ── */}
       {['team', 'orders', 'professional services', 'projects'].includes(activeTab) && (
         <DeliveryWorkspaceTab
+          key={`tab-delivery-${activeTab}`}
           activeTab={activeTab as any}
           leadId={leadId}
         />
@@ -2295,6 +2299,7 @@ export default function LeadDetailPage() {
       {/* ── CONTACTS TAB ── */}
       {activeTab === 'contacts' && (
         <ContactsTab
+          key="tab-contacts"
           contacts={contacts}
           lushaEligible={lushaEligible}
           lushaContactOptions={lushaContactOptions}
@@ -2324,6 +2329,7 @@ export default function LeadDetailPage() {
       {/* ── INTELLIGENCE TAB ── */}
       {activeTab === 'intelligence' && (
         <IntelligenceTab
+          key="tab-intelligence"
           leadId={leadId}
           leadData={leadData}
           isSuperAdmin={isSuperAdmin}
@@ -2341,6 +2347,7 @@ export default function LeadDetailPage() {
       {/* ── REVENUE INTELLIGENCE TAB ── */}
       {activeTab === 'revenue' && (
         <RevenueTab
+          key="tab-revenue"
           revenueLoading={revenueLoading}
           revenueIntel={revenueIntel}
           leadData={leadData}
@@ -2359,6 +2366,7 @@ export default function LeadDetailPage() {
       {/* ── ACTIVITIES TAB ── */}
       {activeTab === 'activities' && (
         <ActivitiesTab
+          key="tab-activities"
           activitiesList={activitiesList}
           onOpenActivityModal={(activity) => openActivityModal(activity)}
           onDeleteActivity={(id) => setDeletingActivityId(id)}
@@ -2368,6 +2376,7 @@ export default function LeadDetailPage() {
       {/* ── MEETINGS TAB (deprecated — use Activities) ── */}
       {activeTab === 'meetings' && (
         <MeetingsTab
+          key="tab-meetings"
           meetingsList={meetingsList}
           onNavigateToActivities={() => setActiveTab('activities')}
         />
@@ -2376,6 +2385,7 @@ export default function LeadDetailPage() {
       {/* ── TRANSCRIPTS TAB ── */}
       {activeTab === 'transcripts' && (
         <TranscriptsTab
+          key="tab-transcripts"
           leadData={leadData}
           lead={lead}
           transcriptsList={transcriptsList}
@@ -2403,12 +2413,17 @@ export default function LeadDetailPage() {
 
       {/* ── PRE-MEETING BRIEF TAB ── */}
       {activeTab === 'pre-meeting brief' && (
-        <PreMeetingBriefTab leadId={leadId} leadData={leadData} />
+        <PreMeetingBriefTab key="tab-brief" leadId={leadId} leadData={leadData} />
       )}
 
       {/* ── PRESALES DISCOVERY TAB ── */}
       {activeTab === 'discovery' && (
-        <DiscoveryWorkspaceTab leadId={leadId} lead={lead} />
+        <DiscoveryWorkspaceTab key="tab-discovery" leadId={leadId} lead={lead} />
+      )}
+
+      {/* ── COMPANY NEWS & BUSINESS SIGNALS TAB ── */}
+      {activeTab === 'news' && (
+        <NewsAndSignalsTab key="tab-news" leadId={leadId} leadData={leadData} />
       )}
 
       {/* ── Add Contact Modal ── */}

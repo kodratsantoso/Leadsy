@@ -86,29 +86,31 @@ function SingleLeadDebugTab() {
     refetchLead();
   };
 
-  const useRerunMutation = (endpoint: string, successLabel: string) =>
-    useMutation({
-      mutationFn: async () => {
-        const res = await apiFetch(`/leads/${selected!.id}${endpoint}`, { method: "POST" });
-        if (!res.ok) {
-          const errorInfo = await readApiError(res, `Failed: ${endpoint}`);
-          throw new Error(errorInfo.title);
-        }
-        return await res.json().catch(() => ({}));
-      },
-      onSuccess: () => {
-        setFeedback({ type: "success", msg: `${successLabel} dispatched.` });
-        invalidate();
-      },
-      onError: (err: any) => setFeedback({ type: "error", msg: describeThrown(err).title }),
-    });
+  const [activeEndpoint, setActiveEndpoint] = useState<string | null>(null);
 
-  const enrichMutation = useRerunMutation("/enrich/retry", "Firmographic Enrichment");
-  const verificationMutation = useRerunMutation("/verification/run", "Company Verification");
-  const profilingMutation = useRerunMutation("/run-profiling-strategy", "Profiling & Strategy + Product Matching (legacy)");
-  const rescoreMutation = useRerunMutation("/rescore", "Scoring + ICP + Qualification");
-  const analysisMutation = useRerunMutation("/revenue-analysis", "Revenue Intelligence Analysis");
-  const bantcMutation = useRerunMutation("/bantc-questions/generate", "BANTC Questions");
+  const rerunMutation = useMutation({
+    mutationFn: async ({ endpoint, successLabel }: { endpoint: string; successLabel: string }) => {
+      setActiveEndpoint(endpoint);
+      const res = await apiFetch(`/leads/${selected!.id}${endpoint}`, { method: "POST" });
+      if (!res.ok) {
+        const errorInfo = await readApiError(res, `Failed: ${endpoint}`);
+        throw new Error(errorInfo.title);
+      }
+      return { data: await res.json().catch(() => ({})), successLabel };
+    },
+    onSuccess: (result) => {
+      setFeedback({ type: "success", msg: `${result.successLabel} dispatched.` });
+      invalidate();
+    },
+    onError: (err: any) => setFeedback({ type: "error", msg: describeThrown(err).title }),
+    onSettled: () => setActiveEndpoint(null),
+  });
+
+  const isRerunPending = (endpoint: string) => rerunMutation.isPending && activeEndpoint === endpoint;
+
+  const runRerun = (endpoint: string, successLabel: string) => {
+    rerunMutation.mutate({ endpoint, successLabel });
+  };
 
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const runFullPipeline = async () => {
@@ -167,12 +169,12 @@ function SingleLeadDebugTab() {
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <RerunButton label="Re-run Firmographic Enrichment (queued)" icon={Sparkles} onRun={() => enrichMutation.mutate()} pending={enrichMutation.isPending} />
-              <RerunButton label="Re-run Company Verification" icon={Building2} onRun={() => verificationMutation.mutate()} pending={verificationMutation.isPending} />
-              <RerunButton label="Profiling & Strategy + Product Matching (legacy, not in pipeline)" icon={BrainCircuit} onRun={() => profilingMutation.mutate()} pending={profilingMutation.isPending} />
-              <RerunButton label="Re-run Scoring + ICP + Qualification" icon={Zap} onRun={() => rescoreMutation.mutate()} pending={rescoreMutation.isPending} />
-              <RerunButton label="Re-run Revenue Intelligence Analysis" icon={Zap} onRun={() => analysisMutation.mutate()} pending={analysisMutation.isPending} />
-              <RerunButton label="Generate BANTC Questions" icon={ClipboardList} onRun={() => bantcMutation.mutate()} pending={bantcMutation.isPending} />
+              <RerunButton label="Re-run Firmographic Enrichment (queued)" icon={Sparkles} onRun={() => runRerun("/enrich/retry", "Firmographic Enrichment")} pending={isRerunPending("/enrich/retry")} />
+              <RerunButton label="Re-run Company Verification" icon={Building2} onRun={() => runRerun("/verification/run", "Company Verification")} pending={isRerunPending("/verification/run")} />
+              <RerunButton label="Profiling & Strategy + Product Matching (legacy, not in pipeline)" icon={BrainCircuit} onRun={() => runRerun("/run-profiling-strategy", "Profiling & Strategy + Product Matching (legacy)")} pending={isRerunPending("/run-profiling-strategy")} />
+              <RerunButton label="Re-run Scoring + ICP + Qualification" icon={Zap} onRun={() => runRerun("/rescore", "Scoring + ICP + Qualification")} pending={isRerunPending("/rescore")} />
+              <RerunButton label="Re-run Revenue Intelligence Analysis" icon={Zap} onRun={() => runRerun("/revenue-analysis", "Revenue Intelligence Analysis")} pending={isRerunPending("/revenue-analysis")} />
+              <RerunButton label="Generate BANTC Questions" icon={ClipboardList} onRun={() => runRerun("/bantc-questions/generate", "BANTC Questions")} pending={isRerunPending("/bantc-questions/generate")} />
             </div>
 
             <Button onClick={runFullPipeline} disabled={pipelineRunning} className="w-full gap-2 bg-[var(--brand)] text-white hover:opacity-90">

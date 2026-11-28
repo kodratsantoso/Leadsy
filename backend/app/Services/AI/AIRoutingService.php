@@ -50,6 +50,7 @@ class AIRoutingService
         'product_specification_comparison' => 'Product Specification Comparison',
         'sales_copilot' => 'In-Context Sales Copilot Assistant',
         'industry_news_extraction' => 'Industry Newsletter Entity & Signal Extraction',
+        'company_news_intelligence_analysis' => 'Company News & Business Signals Intelligence',
 
         // Meeting Summary is one AI call ('meeting_summary') whose prompt is assembled
         // from a general instruction plus one per meeting type. They are fetched by

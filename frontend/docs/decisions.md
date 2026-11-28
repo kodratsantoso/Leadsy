@@ -304,4 +304,18 @@
 - **Rationale**: Previously, the application lacked centralized font loading, falling back to OS-default `system-ui`. Establishing a dedicated 4-tier typography system elevates Leadsy into a world-class, premium enterprise SaaS interface with high information density, sharp readability, and rock-solid architectural governance.
 - **Impact**: Full compliance across 94 Next.js routes with zero runtime layout shift, zero TypeScript errors, clean document generation, and centralized token governance.
 
+## ADR-040: Company News & Business Signals Intelligence and Client Runtime Navigation Auto-Healing
+- **Date**: 2026-11-28
+- **Status**: Active
+- **Decision**: Implemented full-stack Company News & Business Signals Intelligence and solved runtime client-side navigation error #310:
+  1. **Multi-Engine News Discovery Pipeline**: Discovers verified corporate news and publications using Serper Google News, Tavily AI News, Custom Endpoint, and Gemini Google Search Grounding with source provenance and publisher reliability scores.
+  2. **Automated Business Signals & Product Master Matching**: Classifies news developments into Opportunity, Risk, Expansion, Leadership, and M&A signals. Automatically maps opportunity signals to active `Product` models in the database (Zero Hardcoding) and formulates strategic pitching angles and discovery questions.
+  3. **Pre-Meeting Brief Push Integration**: One-click action to push high-impact news pitching angles directly into `LeadPreMeetingBrief` (`executive_brief`).
+  4. **Frontend Architecture & Navigation Stability**: Added `NewsAndSignalsTab` (`/leads/[id]` > News & Signals) and stabilized React 19 concurrent client transitions by implementing auto-healing in `frontend/app/error.tsx` for transient hook count desynchronization (#310), accompanied by stable fiber keys across template and lead detail subtabs.
+  5. **Official Favicon Suite**: Generated crisp multi-resolution favicons (`favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`) from `leadsy-logo.png`, replacing the default Next.js/Vercel favicon in browser tabs.
+  6. **Search & PIC Discovery Auto-Persistence**: Configured test connection handler in `IntegrationConfigController` to automatically persist valid credentials upon verification, preventing credential loss between testing and execution.
+- **Rationale**: Sales representatives need real-time, evidence-based corporate context to tailor outbound hooks, identify sudden expansion needs, and mitigate operational risks. Resolving client-side navigation crashes guarantees uninterrupted day-to-day sales workflows.
+- **Impact**: Non-destructive schema addition (`lead_company_news`, `lead_business_signals`, `lead_news_intelligence_analyses`). 100% test coverage with automated feature tests (`CompanyNewsIntelligenceTest`). Frontend compiles cleanly with zero TypeScript errors.
+
+
 

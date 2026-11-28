@@ -614,6 +614,21 @@ class Lead extends Model
         return $this->hasMany(CustomerRenewalOpportunity::class);
     }
 
+    public function companyNews(): HasMany
+    {
+        return $this->hasMany(LeadCompanyNews::class)->orderByDesc('published_at');
+    }
+
+    public function businessSignals(): HasMany
+    {
+        return $this->hasMany(LeadBusinessSignal::class);
+    }
+
+    public function latestNewsIntelligence(): HasOne
+    {
+        return $this->hasOne(LeadNewsIntelligenceAnalysis::class)->latestOfMany();
+    }
+
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
         if (! $user || $user->isSuperAdmin() || $user->isExecutive()) {

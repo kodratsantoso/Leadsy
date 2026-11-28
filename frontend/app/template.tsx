@@ -67,30 +67,30 @@ export default function Template({ children }: { children: React.ReactNode }) {
   }, [mounted, token, isPublicAuthRoute, isOfflineRoute, user?.role?.permissions?.length, setAuth]);
 
   if (!mounted) {
-    return <div className="min-h-screen bg-background" />; // Stop hydration mismatch visually on initial page load
+    return <div key="template-unmounted-gate" className="min-h-screen bg-background" />; // Stop hydration mismatch visually on initial page load
   }
 
   // Bypass the app shell for public & offline fallback routes
   if (isPublicRoute) {
-    return <>{children}</>;
+    return <div key="template-public-wrapper">{children}</div>;
   }
 
   // Prevent flashing secured content
   if (!token) {
-    return <div className="min-h-screen bg-background" />;
+    return <div key="template-unauthenticated-gate" className="min-h-screen bg-background" />;
   }
 
   if (user && pathname !== "/dashboard" && !canAccessPath(pathname, user)) {
-    return <div className="min-h-screen bg-background" />;
+    return <div key="template-unauthorized-gate" className="min-h-screen bg-background" />;
   }
 
   // Dedicated SaaS Platform Control Plane Shell
   if (pathname.startsWith("/admin")) {
-    return <PlatformShell>{children}</PlatformShell>;
+    return <PlatformShell key="template-platform-shell">{children}</PlatformShell>;
   }
 
   return (
-    <AppShell>
+    <AppShell key="template-app-shell">
       <ImpersonationBanner />
       {children}
     </AppShell>

@@ -756,6 +756,46 @@ class IntegrationConfigController extends Controller
 
         $res = $provider->testConnection($data['credentials'] ?? [], $tenantId);
 
+        if ($res['success'] && !empty($data['credentials'])) {
+            foreach ($data['credentials'] as $key => $val) {
+                if ($val !== null && !str_starts_with((string)$val, '••••')) {
+                    IntegrationConfig::updateOrCreate(
+                        ['tenant_id' => $tenantId, 'key' => $key],
+                        [
+                            'category' => 'search_engines',
+                            'value' => $val,
+                            'is_secret' => str_contains($key, 'KEY') || str_contains($key, 'SECRET'),
+                            'is_active' => true,
+                            'value_type' => 'string',
+                        ]
+                    );
+                }
+            }
+
+            // Also auto-enable the provider flag
+            $enableKey = match ($data['provider']) {
+                'serper' => 'SERPER_ENABLED',
+                'custom' => 'CUSTOM_SEARCH_ENABLED',
+                'google_cse' => 'GOOGLE_CSE_ENABLED',
+                'tavily' => 'TAVILY_ENABLED',
+                'lusha' => 'LUSHA_SEARCH_ENABLED',
+                default => null,
+            };
+
+            if ($enableKey) {
+                IntegrationConfig::updateOrCreate(
+                    ['tenant_id' => $tenantId, 'key' => $enableKey],
+                    [
+                        'category' => 'search_engines',
+                        'value' => 'true',
+                        'is_secret' => false,
+                        'is_active' => true,
+                        'value_type' => 'boolean',
+                    ]
+                );
+            }
+        }
+
         return response()->json($res, $res['success'] ? 200 : 422);
     }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertCircle, RotateCcw, Home } from 'lucide-react';
 import Link from 'next/link';
 
@@ -11,10 +11,48 @@ export default function ErrorBoundary({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [isRetrying, setIsRetrying] = useState(false);
+
   useEffect(() => {
     // Log exception to console
     console.error('[Leadsy Client Runtime Error]:', error);
-  }, [error]);
+
+    // Auto-heal for transient React 19 hook count desync during concurrent route navigation (#310)
+    const isHookCountMismatch =
+      error?.message?.includes('310') ||
+      error?.message?.includes('Rendered more hooks') ||
+      error?.message?.includes('Rendered fewer hooks') ||
+      error?.message?.includes('Rules of Hooks');
+
+    if (isHookCountMismatch && typeof window !== 'undefined') {
+      const healKey = `leadsy_auto_heal_${window.location.pathname}`;
+      const lastHeal = sessionStorage.getItem(healKey);
+      const now = Date.now();
+
+      // Trigger automatic recovery once per route transition within 3 seconds
+      if (!lastHeal || now - Number(lastHeal) > 3000) {
+        sessionStorage.setItem(healKey, String(now));
+        setIsRetrying(true);
+        const timer = setTimeout(() => {
+          reset();
+        }, 80);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [error, reset]);
+
+  const handleReload = () => {
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    } else {
+      reset();
+    }
+  };
+
+  const isMinifiedHookError =
+    error?.message?.includes('310') ||
+    error?.message?.includes('Rendered more hooks') ||
+    error?.message?.includes('Rendered fewer hooks');
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center p-6">
@@ -28,9 +66,11 @@ export default function ErrorBoundary({
             Terjadi Kesalahan Aplikasi
           </h2>
           <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-            {error?.message || 'Terjadi kesalahan tidak terduga pada browser saat memuat data.'}
+            {isMinifiedHookError
+              ? 'Terjadi sedikit kendala rendering saat berpindah halaman. Silakan muat ulang halaman untuk melanjutkan.'
+              : error?.message || 'Terjadi kesalahan tidak terduga pada browser saat memuat data.'}
           </p>
-          {error?.digest && (
+          {error?.digest && !isMinifiedHookError && (
             <p className="text-xs font-mono text-[var(--text-muted)] mt-1">
               Error Digest: {error.digest}
             </p>
@@ -39,11 +79,12 @@ export default function ErrorBoundary({
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
           <button
-            onClick={() => reset()}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--brand)] text-[var(--brand-foreground,#ffffff)] font-medium text-sm hover:opacity-90 transition-opacity shadow-sm"
+            onClick={handleReload}
+            disabled={isRetrying}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--brand)] text-[var(--brand-foreground,#ffffff)] font-medium text-sm hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
           >
-            <RotateCcw className="w-4 h-4" />
-            Coba Muat Ulang
+            <RotateCcw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
+            {isRetrying ? 'Memulihkan Tampilan...' : 'Coba Muat Ulang'}
           </button>
           <Link
             href="/dashboard"

@@ -253,6 +253,13 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
 
     Route::post('leads/{lead}/enrich', [\App\Http\Controllers\Api\LeadEnrichmentController::class, 'enrich'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/enrich/retry', [\App\Http\Controllers\Api\LeadEnrichmentController::class, 'retry'])->middleware('permission:leads.edit');
+
+    // Company News & Business Signals Intelligence
+    Route::get('leads/{lead}/company-news', [\App\Http\Controllers\Api\CompanyNewsController::class, 'index'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/company-news/discover', [\App\Http\Controllers\Api\CompanyNewsController::class, 'discover'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/company-news/analyze', [\App\Http\Controllers\Api\CompanyNewsController::class, 'analyze'])->middleware('permission:leads.edit');
+    Route::patch('leads/{lead}/company-news/{news}/relevance', [\App\Http\Controllers\Api\CompanyNewsController::class, 'updateRelevance'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/company-news/apply-to-brief', [\App\Http\Controllers\Api\CompanyNewsController::class, 'applyToBrief'])->middleware('permission:leads.edit');
     Route::get('settings/lead-sources', [LeadSourceTypeController::class, 'index'])->middleware('permission:leads.view');
     Route::apiResource('settings/lead-sources', LeadSourceTypeController::class)->except(['index', 'show'])->middleware('permission:leads.edit');
     Route::get('settings/lead-channels', [LeadChannelTypeController::class, 'index'])->middleware('permission:leads.view');
